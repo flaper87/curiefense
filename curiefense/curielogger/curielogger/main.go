@@ -185,8 +185,8 @@ type LogEntry struct {
 }
 
 type Logger interface {
-	Configure(name string, channel_capacity int) error
-	ConfigureFromEnv(name string, envVar string, channel_capacity int) error
+	Configure(channel_capacity int) error
+	ConfigureFromEnv(envVar string, channel_capacity int) error
 	Start()
 	GetLogEntry() LogEntry
 	SendEntry(e LogEntry)
@@ -209,23 +209,19 @@ func (l logger) SendEntry(e LogEntry) {
 	}
 }
 
-func (l *logger) Configure(name string, channel_capacity int) error {
-	ch := make(chan LogEntry, channel_capacity)
-	l.name = name
-	l.channel = ch
-	if l.do_insert == nil {
-		l.do_insert = l.InsertEntry
-	}
+func (l *logger) Configure(channel_capacity int) error {
+	l.name = "Generic Logger"
+	l.channel = make(chan LogEntry, channel_capacity)
 	return nil
 }
 
-func (l *logger) ConfigureFromEnv(name string, envVar string, channel_capacity int) error {
+func (l *logger) ConfigureFromEnv(envVar string, channel_capacity int) error {
 	url, ok := os.LookupEnv(envVar)
 	if !ok {
 		return errors.New(fmt.Sprintf("Did not find %s in environment", envVar))
 	}
 	l.url = url
-	return l.Configure(name, channel_capacity)
+	return l.Configure(channel_capacity)
 }
 
 func (l logger) Start() {
@@ -437,6 +433,14 @@ type promLogger struct {
 	logger
 }
 
+func (l *promLogger) Configure(channel_capacity int) error {
+	l.name = "Prometheus"
+	ch := make(chan LogEntry, channel_capacity)
+	l.channel = ch
+	l.do_insert = l.InsertEntry
+	return nil
+}
+
 func (l promLogger) Start() {
 	log.Printf("[INFO]: Prometheus (%s) metrics updating routine started", l.name)
 
@@ -497,6 +501,14 @@ func (l pgLogger) getDB() *pgx.Conn {
 	return l.db
 }
 
+func (l *pgLogger) Configure(channel_capacity int) error {
+	l.name = "Postgresql"
+	ch := make(chan LogEntry, channel_capacity)
+	l.channel = ch
+	l.do_insert = l.InsertEntry
+	return nil
+}
+
 func (l *pgLogger) InsertEntry(e LogEntry) bool {
 	db := l.getDB() // needed to ensure db cnx is not closed and reopen it if needed
 
@@ -539,15 +551,23 @@ func (l *pgLogger) InsertEntry(e LogEntry) bool {
 // |___|____/_/ \_\___/ |_| |___\___|___/___/_/ \_\_|_\\___|_||_|
 // ELASTICSEARCH
 
+type ElasticsearchConfig struct {
+	Enabled    bool   `mapstructure:"enabled"`
+	Url        string `mapstructure:"url"`
+	Initialize bool   `mapstructure:"initialize"`
+	Overwrite  bool   `mapstructure:"overwrite"`
+}
+
 type esLogger struct {
 	logger
 	client *elasticsearch.Client
+	config ElasticsearchConfig
 }
 
 func (l esLogger) getESClient() *elasticsearch.Client {
 	for l.client == nil {
 		cfg := elasticsearch.Config{
-			Addresses: []string{l.url},
+			Addresses: []string{l.config.Url},
 		}
 		conn, err := elasticsearch.NewClient(cfg)
 		if err == nil {
@@ -559,6 +579,19 @@ func (l esLogger) getESClient() *elasticsearch.Client {
 		time.Sleep(time.Second)
 	}
 	return l.client
+}
+
+func (l *esLogger) Configure(channel_capacity int) error {
+	l.name = "Elasticsearch"
+	ch := make(chan LogEntry, channel_capacity)
+	l.channel = ch
+	l.do_insert = l.InsertEntry
+
+	if !l.config.Initialize {
+		return nil
+	}
+
+	return nil
 }
 
 func (l *esLogger) InsertEntry(e LogEntry) bool {
@@ -596,6 +629,14 @@ type logstashLogger struct {
 	config LogstashConfig
 }
 
+func (l *logstashLogger) Configure(channel_capacity int) error {
+	l.name = "Logstash"
+	ch := make(chan LogEntry, channel_capacity)
+	l.channel = ch
+	l.do_insert = l.InsertEntry
+	return nil
+}
+
 func (l *logstashLogger) InsertEntry(e LogEntry) bool {
 	log.Printf("[DEBUG] LogStash insertion!")
 	e.cfLog.Tags = append(e.cfLog.Tags, "curieaccesslog")
@@ -621,6 +662,14 @@ func (l *logstashLogger) InsertEntry(e LogEntry) bool {
 
 type fluentdLogger struct {
 	logger
+}
+
+func (l *fluentdLogger) Configure(channel_capacity int) error {
+	l.name = "FluentD"
+	ch := make(chan LogEntry, channel_capacity)
+	l.channel = ch
+	l.do_insert = l.InsertEntry
+	return nil
 }
 
 func (l *fluentdLogger) InsertEntry(e LogEntry) bool {
@@ -912,7 +961,6 @@ func main() {
 
 	// Prometheus
 	prom := promLogger{logger{name: "prometheus", channel: make(chan LogEntry, config.ChannelCapacity)}}
-	prom.do_insert = prom.InsertEntry // manual OOP :( thanks Go.
 	loggers = append(loggers, &prom)
 
 	// PostgreSQL
@@ -939,32 +987,32 @@ func main() {
 			host = re.FindStringSubmatch(db_url)[1]
 		}
 		pg := pgLogger{logger: logger{name: "postgres", url: db_url, channel: make(chan LogEntry, config.ChannelCapacity)}, host: host}
-		pg.do_insert = pg.InsertEntry // manual OOP :( thanks Go.
 		loggers = append(loggers, &pg)
 	}
 
-	// ElasticSearch
-	if check_env_flag("CURIELOGGER_USES_ELASTICSEARCH") {
-		es := esLogger{}
-		es.do_insert = es.InsertEntry // manual OOP :( thanks Go.
-		es.ConfigureFromEnv("ElasticSearch", "CURIELOGGER_ELASTICSEARCH_URL", config.ChannelCapacity)
-		loggers = append(loggers, &es)
-	}
+	for _, output := range config.Outputs {
+		// ElasticSearch
+		if output.Elasticsearch.Enabled {
+			log.Printf("[DEBUG] Elasticsearch enabled with URL: %s", output.Elasticsearch.Url)
+			es := esLogger{}
+			es.Configure(config.ChannelCapacity)
+			loggers = append(loggers, &es)
+		}
 
-	// Logstash
-	if config.Outputs.Logstash.Enabled {
-		log.Printf("[DEBUG] Logstash enabled with URL: %s", config.Outputs.Logstash.Url)
-		ls := logstashLogger{config: config.Outputs.Logstash}
-		ls.do_insert = ls.InsertEntry // manual OOP :( thanks Go.
-		ls.Configure("LogStash", config.ChannelCapacity)
-		loggers = append(loggers, &ls)
+		// Logstash
+		if output.Logstash.Enabled {
+			log.Printf("[DEBUG] Logstash enabled with URL: %s", output.Logstash.Url)
+			ls := logstashLogger{config: output.Logstash}
+			ls.Configure(config.ChannelCapacity)
+			loggers = append(loggers, &ls)
+		}
+
 	}
 
 	// Fluentd
 	if check_env_flag("CURIELOGGER_USES_FLUENTD") {
 		fd := fluentdLogger{}
-		fd.do_insert = fd.InsertEntry // manual OOP :( thanks Go.
-		fd.ConfigureFromEnv("Fluentd", "CURIELOGGER_FLUENTD_URL", config.ChannelCapacity)
+		fd.ConfigureFromEnv("CURIELOGGER_FLUENTD_URL", config.ChannelCapacity)
 		loggers = append(loggers, &fd)
 	}
 

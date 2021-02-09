@@ -1,5 +1,8 @@
 log_level: debug
 outputs:
-  logstash:
-      enabled: false
-      url: "http://logstash:5001/"
+    - elasticsearch:
+        enabled: true
+        url: "http://elasticsearch:9200/"
+    - logstash:
+        enabled: true
+        url: "http://logstash:5001/"

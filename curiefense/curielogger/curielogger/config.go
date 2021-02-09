@@ -8,13 +8,14 @@ import (
 )
 
 type Config struct {
-	LogLevel        string        `mapstructure:"log_level" validate:"one_of=info,debug,error"`
-	ChannelCapacity int           `mapstructure:"channel_capacity"`
-	Outputs         OutputsConfig `mapstructure:"outputs,omitempty"`
+	LogLevel        string          `mapstructure:"log_level" validate:"one_of=info,debug,error"`
+	ChannelCapacity int             `mapstructure:"channel_capacity"`
+	Outputs         []OutputsConfig `mapstructure:"outputs,omitempty"`
 }
 
 type OutputsConfig struct {
-	Logstash LogstashConfig `mapstructure:"logstash,omitempty"`
+	Elasticsearch ElasticsearchConfig `mapstructure:"elasticsearch,omitempty"`
+	Logstash      LogstashConfig      `mapstructure:"logstash,omitempty"`
 }
 
 func LoadConfig() (config Config, err error) {
