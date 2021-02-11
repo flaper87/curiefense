@@ -1,0 +1,118 @@
+name: Run e2e tests on minikube
+
+on: [push, pull_request]
+
+jobs:
+  e2e-minikube:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.3.0
+        with:
+          driver: docker
+          minikube version: 'v1.17.1'
+          kubernetes version: 'v1.19.2'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          start args: "--memory='3Gi' --addons=ingress"
+
+      - name: Interact with the cluster
+        run: |
+            set +x
+
+            eval $(minikube docker-env)
+
+            export BASEDIR=.
+            export IP=127.0.0.1
+            export DATE="$(date --iso=m)"
+            export BRANCH=$(echo ${GITHUB_REF#refs/heads/})
+            export BRANCH=main
+            export DOCKER_TAG=$BRANCH
+            export VERSION=$(git rev-parse --short=12 HEAD)
+            BASEDIR="$(dirname "$(readlink -f "$0")")"
+            #pushd curiefense/images
+            #./build-docker-images.sh
+            #popd
+
+            pushd deploy/istio-helm
+            ./deploy.sh -f chart/use-local-bucket.yaml -f chart/values-istio-ci.yaml
+            sleep 10
+            # reduce cpu requests for istio components so that this fits on a 4-CPU node
+            kubectl patch -n istio-system deployment istio-pilot --patch '{"spec": {"template": {"spec": {"containers": [{"name": "discovery", "resources": {"requests": {"cpu": "10m"}}}]}}}}'
+            sleep 5
+            popd
+
+            pushd deploy/curiefense-helm
+            kubectl create namespace curiefense
+            ./deploy.sh -f curiefense/use-local-bucket.yaml -f curiefense/e2e-ci.yaml
+
+            runtime="5 minute"
+            endtime=$(date -ud "$runtime" +%s)
+
+            while [[ "$(kubectl --namespace curiefense get pod | grep -v Running | cut -d' ' -f1)" != "NAME" ]];
+            do
+                if [[ $(date -u +%s) -ge $endtime ]];
+                then
+                    kubectl --namespace curiefense get pods
+                    echo "Time out waiting for curiefense to be ready"
+                    break
+                fi
+
+                echo "Waiting for curiefense: sleeping for 20s"
+                sleep 20
+            done
+
+            # Expose services
+            kubectl create -f expose-services.yaml
+            popd
+
+            echo "-- Deploy bookinfo (test app) --"
+            kubectl create -f deploy/echo-server.yaml
+
+            endtime=$(date -ud "$runtime" +%s)
+
+            while [[ ! $(curl -fsS "http://$(minikube ip):30081/productpage" | grep "command=GET" ) ]];
+            do
+                if [[ $(date -u +%s) -ge $endtime ]];
+                then
+                    kubectl --namespace echoserver describe pods
+                    kubectl --namespace echoserver get pods
+                    echo "Time out waiting for bookinfo to respond"
+                    break
+                fi
+
+                echo "Waiting for bookinfo: sleeping for 20s"
+                sleep 20
+            done
+
+            echo "-- Install curieconfctl --"
+
+            # curieconfctl will try to write to this
+            # path during the tests. This is currently
+            # not configurable.
+            sudo mkdir /bucket
+            sudo chmod 777 /bucket
+
+            python3 -m venv "$BASEDIR/venv"
+            source "$BASEDIR/venv/bin/activate"
+            pip install -U requests pytest pytest-html wheel
+
+            pushd "curiefense/curieconf/utils"
+            pip install -e .
+            popd
+
+            pushd "curiefense/curieconf/client"
+            pip install -e .
+            popd
+
+            echo "-- Run e2e tests --"
+            pushd e2e
+
+            #pytest --log-level INFO --base-protected-url http://$IP:30081 --base-conf-url http://$IP:30000/api/v1/ --base-ui-url http://$IP:30080 --html="$BASEDIR/test-reports/test-report-$BRANCH-$DATE-$VERSION.html" --self-contained-html .
+            pytest --base-protected-url http://$(minikube ip):30081 --base-conf-url http://$(minikube ip):30000/api/v1/ --base-ui-url http://$(minikube ip):30080 --elasticsearch-url http://$(minikube ip):30200/ --html="$BASEDIR/test-reports/test-report-$BRANCH-$DATE-$VERSION.html" --self-contained-html .

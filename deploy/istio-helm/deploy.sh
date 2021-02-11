@@ -16,6 +16,12 @@ if ! kubectl api-resources|grep -q config.istio.io; then
     sleep 5
 fi
 
+
+if ! kubectl get namespaces|grep -q istio-system; then
+	kubectl create namespace istio-system
+    echo "istio-system namespace created"
+fi
+
 PARAMS=()
 
 if [ -n "$NOPULL" ]; then
