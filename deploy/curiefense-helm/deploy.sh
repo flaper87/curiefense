@@ -1,5 +1,7 @@
 #!/bin/bash
 
+HELM_ARGS=${HELM_ARGS:-"--wait --timeout 600"}
+
 if [ -z "$DOCKER_TAG" ]; then
     if ! GITTAG="$(git describe --tag --long --exact-match 2> /dev/null)"; then
         GITTAG="$(git describe --tag --long --dirty)"
@@ -27,7 +29,7 @@ if ! kubectl get namespaces|grep -q curiefense; then
     echo "curiefense namespace created"
 fi
 
-helm upgrade --install --namespace curiefense --reuse-values --timeout "600" --wait \
+helm upgrade --install --namespace curiefense --reuse-values $HELM_ARGS \
     --set "global.settings.docker_tag=$DOCKER_TAG" \
     "${PARAMS[@]}" "$@" curiefense curiefense/
 

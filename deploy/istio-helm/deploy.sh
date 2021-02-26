@@ -1,5 +1,6 @@
 #!/bin/bash
 
+HELM_ARGS=${HELM_ARGS:-"--wait --timeout 600"}
 
 if [ -z "$DOCKER_TAG" ]; then
     if ! GITTAG="$(git describe --tag --long --exact-match 2> /dev/null)"; then
@@ -28,8 +29,8 @@ if [ -n "$NOPULL" ]; then
     PARAMS+=("--set" "global.imagePullPolicy=Never")
 fi
 
-helm upgrade --install --namespace istio-system --reuse-values --wait \
-    --timeout "600" \
+helm upgrade --install --namespace istio-system --reuse-values \
+    $HELM_ARGS \
     -f chart/custom/enable-waf-ingress.yaml \
     --set "global.proxy.gw_image=curiefense/curieproxy-istio:$DOCKER_TAG" \
     --set "global.proxy.curiesync_image=curiefense/curiesync:$DOCKER_TAG" \
