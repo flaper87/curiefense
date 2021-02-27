@@ -19,10 +19,11 @@ BLOBS_PATH = {
 }
 
 BLOBS_BOOTSTRAP = {
-    "geolite2asn"     : b"",
-    "geolite2country" : b"",
-    "geolite2city" : b"",
+    "geolite2asn": b"",
+    "geolite2country": b"",
+    "geolite2city": b"",
 }
+
 
 def jblob2bytes(jblob):
     fmt = jblob["format"]
@@ -34,19 +35,19 @@ def jblob2bytes(jblob):
     elif fmt == "base64" or fmt.endswith("+base64"):
         jraw = codecs.decode(jraw.encode("utf8"), "base64")
         if "+" in fmt:
-            cmp,b = fmt.rsplit("+",1)
+            cmp, b = fmt.rsplit("+", 1)
             if cmp not in ["zip", "bz2"]:
-                raise Exception("unknown blob format: [%s]" % fmt )
+                raise Exception("unknown blob format: [%s]" % fmt)
             jraw = codecs.decode(jraw, cmp)
         return jraw
-    raise Exception("unknown blob format: [%s]" % fmt )
+    raise Exception("unknown blob format: [%s]" % fmt)
 
 
 def bytes2jblob(b, fmthint=None):
     try:
         if fmthint == "json":
             c = json.loads(b.decode("utf-8"))
-            return { "format": "json", "blob": c}
+            return {"format": "json", "blob": c}
     except:
         pass
     compb = codecs.encode(b, "bz2")
@@ -56,4 +57,4 @@ def bytes2jblob(b, fmthint=None):
     else:
         fmt = "base64"
     bl = base64.b64encode(b).decode("utf-8")
-    return  { "format": fmt, "blob": bl }
+    return {"format": fmt, "blob": bl}

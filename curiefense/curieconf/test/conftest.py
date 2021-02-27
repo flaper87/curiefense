@@ -5,24 +5,24 @@ import socket
 import time
 from data import bootstrap_config_json, bootstrap_small_config_json
 
-API_ADDRESS=("127.0.0.1",5000)
-API_BASE="http://%s:%i/api/v1/" % API_ADDRESS
+API_ADDRESS = ("127.0.0.1", 5000)
+API_BASE = "http://%s:%i/api/v1/" % API_ADDRESS
 
 
-@pytest.fixture(scope="function", params=["git://"])#"mongodb://172.17.0.4/pytest"])
+@pytest.fixture(scope="function", params=["git://"])  # "mongodb://172.17.0.4/pytest"])
 def curieapi_empty(request, tmpdir):
     if request.param.startswith("git"):
-        url = request.param+str(tmpdir)+"/git"
+        url = request.param + str(tmpdir) + "/git"
     elif request.param.startswith("mongodb"):
-        url = "%s_%i" % (request.param,time.time())
+        url = "%s_%i" % (request.param, time.time())
     else:
         raise NotImplemented
 
     p = subprocess.Popen(["curieconf_server", "--dbpath", url])
 
     t = time.time()
-    while time.time()-t < 10:
-        s=socket.socket()
+    while time.time() - t < 10:
+        s = socket.socket()
         try:
             s.connect(API_ADDRESS)
         except ConnectionRefusedError:
@@ -44,11 +44,13 @@ def curieapi_empty(request, tmpdir):
     p.wait()
     # XXX: drop mongodb test database
 
+
 @pytest.fixture()
 def curieapi(request, curieapi_empty):
     r = curieapi_empty.configs.create_name("pytest", body=bootstrap_config_json)
     assert r.status_code == 200
     return curieapi_empty
+
 
 @pytest.fixture()
 def curieapi_small(request, curieapi_empty):

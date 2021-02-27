@@ -1,8 +1,8 @@
-'''
+"""
 this script converts BQ JSON structure to ES structure
  input stdin
 output stdout
-'''
+"""
 
 import fileinput
 import json
@@ -14,21 +14,77 @@ import socket
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--spoof", default=False, action="store_true", help="spoof private data")
+parser.add_argument(
+    "--spoof", default=False, action="store_true", help="spoof private data"
+)
 
 from metrics import process_metrics
 
-atbash={"a":"z","A":"Z","b":"y","B":"Y","c":"x","C":"X","d":"w","D":"W","e":"v","E":"V","f":"u","F":"U","g":"t","G":"T","h":"s","H":"S","i":"r","I":"R","j":"q","J":"Q","k":"p","K":"P","l":"o","L":"O","M":"N","m":"n","N":"M","n":"m","o":"l","O":"L","p":"k","P":"K","q":"j","Q":"J","r":"i","R":"I","s":"h","S":"H","t":"g","T":"G","u":"f","U":"F","v":"e","V":"E","w":"d","W":"D","x":"c","X":"C","y":"b","Y":"B","z":"a","Z":"A"}
-atbash["0"]="9"
-atbash["1"]="8"
-atbash["2"]="7"
-atbash["3"]="6"
-atbash["4"]="5"
-atbash["5"]="4"
-atbash["6"]="3"
-atbash["7"]="2"
-atbash["8"]="1"
-atbash["9"]="0"
+atbash = {
+    "a": "z",
+    "A": "Z",
+    "b": "y",
+    "B": "Y",
+    "c": "x",
+    "C": "X",
+    "d": "w",
+    "D": "W",
+    "e": "v",
+    "E": "V",
+    "f": "u",
+    "F": "U",
+    "g": "t",
+    "G": "T",
+    "h": "s",
+    "H": "S",
+    "i": "r",
+    "I": "R",
+    "j": "q",
+    "J": "Q",
+    "k": "p",
+    "K": "P",
+    "l": "o",
+    "L": "O",
+    "M": "N",
+    "m": "n",
+    "N": "M",
+    "n": "m",
+    "o": "l",
+    "O": "L",
+    "p": "k",
+    "P": "K",
+    "q": "j",
+    "Q": "J",
+    "r": "i",
+    "R": "I",
+    "s": "h",
+    "S": "H",
+    "t": "g",
+    "T": "G",
+    "u": "f",
+    "U": "F",
+    "v": "e",
+    "V": "E",
+    "w": "d",
+    "W": "D",
+    "x": "c",
+    "X": "C",
+    "y": "b",
+    "Y": "B",
+    "z": "a",
+    "Z": "A",
+}
+atbash["0"] = "9"
+atbash["1"] = "8"
+atbash["2"] = "7"
+atbash["3"] = "6"
+atbash["4"] = "5"
+atbash["5"] = "4"
+atbash["6"] = "3"
+atbash["7"] = "2"
+atbash["8"] = "1"
+atbash["9"] = "0"
+
 
 def spoof_text(_input):
     try:
@@ -37,6 +93,7 @@ def spoof_text(_input):
     except:
         return _input
 
+
 def sppof_ip(ipaddr):
     try:
         ipnum = struct.unpack("!I", socket.inet_aton(ipaddr))[0]
@@ -44,6 +101,7 @@ def sppof_ip(ipaddr):
         return socket.inet_ntoa(struct.pack("!I", ipnum))
     except:
         return ipaddr
+
 
 def spoof_record(record):
     record["authority"] = sppof_text(record["authority"])
@@ -85,13 +143,16 @@ def dictify_headers(request):
     ret["host"] = request["host"]
     return ret
 
+
 def dictify_cookies(block):
     return dict((i["c_name"], i["c_value"]) for i in block)
+
 
 def dictify_args(block):
     return dict((i["arg_name"], i["arg_value"]) for i in block)
 
-def tagify (tags, record):
+
+def tagify(tags, record):
     tags = list(tags)
 
     if record["is_anonymizer"]:
@@ -115,7 +176,7 @@ def tagify (tags, record):
 
 
 def reblazer_to_elastic(ngxjson, timestamp):
-    anything_else = json.loads(ngxjson.get('anything_else', "{}"))
+    anything_else = json.loads(ngxjson.get("anything_else", "{}"))
 
     eljson = {}
 
@@ -131,22 +192,17 @@ def reblazer_to_elastic(ngxjson, timestamp):
     eljson["blocked"] = ngxjson["blocked"]
     eljson["block_reason"] = {"reason": ngxjson["block_reason"]}
 
-    eljson["downstream"] = {
-        "remoteaddress": ngxjson["remote_addr"]
-    }
+    eljson["downstream"] = {"remoteaddress": ngxjson["remote_addr"]}
 
     if len(ngxjson["upstream_addr"]) > 1:
         upstream = ngxjson["upstream_addr"].split(":")
         addr = upstream[0]
         # port = int(upstream[1].split(",")[0])
-        eljson["upstream"] = {
-            "remoteaddress": addr,
-            "remoteaddressport": 0
-        }
+        eljson["upstream"] = {"remoteaddress": addr, "remoteaddressport": 0}
 
     eljson["tls"] = {
         "ciphersuite": ngxjson["ssl_cipher"],
-        "version": ngxjson["ssl_protocol"]
+        "version": ngxjson["ssl_protocol"],
     }
 
     eljson["request"] = {
@@ -166,35 +222,40 @@ def reblazer_to_elastic(ngxjson, timestamp):
 
     eljson["response"] = {
         "bodybytes": int(ngxjson["bytes_sent"]),
-        "code": int(ngxjson["status"])
+        "code": int(ngxjson["status"]),
     }
 
     # return spoof_record(eljson)
     return eljson
 
+
 def gen_metric_index(recid):
-    return {"index" : {"_index" : "curiemetrics", "_id" : recid }}
+    return {"index": {"_index": "curiemetrics", "_id": recid}}
+
 
 def gen_accesslog_index(recid):
-    return {"index" : {"_index" : "curieaccesslog", "_id" : recid }}
+    return {"index": {"_index": "curieaccesslog", "_id": recid}}
+
 
 def main():
 
     for line in fileinput.input():
         try:
             ngxjson = json.loads(line)
-            timestamp = datetime.datetime.fromtimestamp(float(ngxjson["timestamp"])).isoformat()
+            timestamp = datetime.datetime.fromtimestamp(
+                float(ngxjson["timestamp"])
+            ).isoformat()
             eljson = reblazer_to_elastic(ngxjson, timestamp)
             recid = eljson["requestid"]
             index_line = json.dumps(gen_accesslog_index(recid))
-            print (index_line, file=sys.stdout)
-            print (json.dumps(eljson), file=sys.stdout)
+            print(index_line, file=sys.stdout)
+            print(json.dumps(eljson), file=sys.stdout)
 
             metric_doc = process_metrics(eljson, timestamp)
             if metric_doc:
                 index_line = json.dumps(gen_metric_index(recid))
-                print (index_line, file=sys.stdout)
-                print (metric_doc, file=sys.stdout)
+                print(index_line, file=sys.stdout)
+                print(metric_doc, file=sys.stdout)
         except TypeError:
             raise
 

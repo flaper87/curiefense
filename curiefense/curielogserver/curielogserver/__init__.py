@@ -10,6 +10,7 @@ from . import ratelimitrecommendation
 import psycopg2
 from psycopg2 import pool
 
+
 class LogJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
@@ -17,6 +18,7 @@ class LogJSONEncoder(json.JSONEncoder):
         if isinstance(obj, decimal.Decimal):
             return float(obj)
         return json.JSONEncoder.default(self, obj)
+
 
 app = Flask(__name__)
 
@@ -28,28 +30,40 @@ app.register_blueprint(api_bp, url_prefix="/api/v1")
 
 app.config["RESTPLUS_JSON"] = {"cls": LogJSONEncoder}
 
-m_exec = api.model("SQL request", {
-    "statement": fields.String(required=True),
-#    "parameters": fields.List(fields.String),
-})
+m_exec = api.model(
+    "SQL request",
+    {
+        "statement": fields.String(required=True),
+        #    "parameters": fields.List(fields.String),
+    },
+)
 
-m_analyze = api.model("SQL analysis", {
-    "action": fields.String(required=True),
-    "parameters": fields.Nested(api.model("SQL analysis parameters", {
-        "timeframe": fields.Integer,
-        "urlmap": fields.String,
-        "urlmapentry": fields.String,
-        "include": fields.List(fields.List(fields.String)),
-        "exclude": fields.List(fields.List(fields.String)),
-        "key": fields.List(fields.List(fields.String)),
-    }))
-})
+m_analyze = api.model(
+    "SQL analysis",
+    {
+        "action": fields.String(required=True),
+        "parameters": fields.Nested(
+            api.model(
+                "SQL analysis parameters",
+                {
+                    "timeframe": fields.Integer,
+                    "urlmap": fields.String,
+                    "urlmapentry": fields.String,
+                    "include": fields.List(fields.List(fields.String)),
+                    "exclude": fields.List(fields.List(fields.String)),
+                    "key": fields.List(fields.List(fields.String)),
+                },
+            )
+        ),
+    },
+)
 
 analyze_actions = ["rate-limit-recommendation"]
 
+
 def get_db():
-    if 'db' not in g:
-        g.db = app.config['postgreSQL_pool'].getconn()
+    if "db" not in g:
+        g.db = app.config["postgreSQL_pool"].getconn()
     return g.db
 
 
@@ -66,11 +80,12 @@ def get_default_dbconfig():
             password = f.readline().rstrip("\r\n")
     else:
         password = os.environ.get("CURIELOGSERVER_DBPASSWORD", "")
-    return ("host=%s dbname=curiefense user=%s password=%s" %
-            (os.environ.get("CURIELOGSERVER_DBHOST", ""),
-             os.environ.get("CURIELOGSERVER_DBUSER", ""),
-             password)
-            )
+    return "host=%s dbname=curiefense user=%s password=%s" % (
+        os.environ.get("CURIELOGSERVER_DBHOST", ""),
+        os.environ.get("CURIELOGSERVER_DBUSER", ""),
+        password,
+    )
+
 
 def execute_sql_request(stmt, params):
     db = get_db()
@@ -85,9 +100,9 @@ def execute_sql_request(stmt, params):
 
 @app.teardown_appcontext
 def close_conn(e):
-    db = g.pop('db', None)
+    db = g.pop("db", None)
     if db is not None:
-        app.config['postgreSQL_pool'].putconn(db)
+        app.config["postgreSQL_pool"].putconn(db)
 
 
 @api.route("/exec/")
@@ -96,8 +111,9 @@ class ExecResource(Resource):
     def post(self):
         "Execute an SQL request on the log db"
         stmt = request.json["statement"]
-        params = request.json.get("parameters",[])
+        params = request.json.get("parameters", [])
         return execute_sql_request(stmt, params)
+
 
 @api.route("/analyze/")
 class ExecResource(Resource):
@@ -111,39 +127,54 @@ class ExecResource(Resource):
         if action == "rate-limit-recommendation":
             input_args = {
                 "yaml_file_name": "/curielogserver/curielogserver/ratelimitec_postgresql.yaml",
-                "startdate": (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %T"),
+                "startdate": (datetime.now() - timedelta(days=7)).strftime(
+                    "%Y-%m-%d %T"
+                ),
                 "enddate": datetime.now().strftime("%Y-%m-%d %T"),
-                "timeframe":  params["timeframe"],
-                "urlmap":  params["urlmap"],
-                "urlmapentry":  params["mapentry"],
-                "include":  params["include"],
-                "exclude":  params["exclude"],
-                "key_composition":  params["key"],
+                "timeframe": params["timeframe"],
+                "urlmap": params["urlmap"],
+                "urlmapentry": params["mapentry"],
+                "include": params["include"],
+                "exclude": params["exclude"],
+                "key_composition": params["key"],
             }
             stmt = ratelimitrecommendation.rate_limit_recommend(input_args)
         return execute_sql_request(stmt, params)
+
 
 def drop_into_pdb(app, exception):
     import sys
     import pdb
     import traceback
+
     traceback.print_exc()
     pdb.post_mortem(sys.exc_info()[2])
+
 
 def main(args=None):
     defaultdb = get_default_dbconfig()
 
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", default=defaultdb)
     parser.add_argument("-d", "--debug", action="store_true", default=False)
     parser.add_argument("--pdb", action="store_true", default=False)
-    parser.add_argument("-H", "--host", default=os.environ.get("CURIELOGSERVER_HOST", "127.0.0.1"))
-    parser.add_argument("-p", "--port", type=int, default=int(os.environ.get("CURIELOGSERVER_PORT","5000")))
+    parser.add_argument(
+        "-H", "--host", default=os.environ.get("CURIELOGSERVER_HOST", "127.0.0.1")
+    )
+    parser.add_argument(
+        "-p",
+        "--port",
+        type=int,
+        default=int(os.environ.get("CURIELOGSERVER_PORT", "5000")),
+    )
 
     options = parser.parse_args(args)
 
-    app.config['postgreSQL_pool'] = psycopg2.pool.ThreadedConnectionPool(1, 20, options.db)
+    app.config["postgreSQL_pool"] = psycopg2.pool.ThreadedConnectionPool(
+        1, 20, options.db
+    )
 
     if options.pdb:
         got_request_exception.connect(drop_into_pdb)
@@ -151,5 +182,5 @@ def main(args=None):
     app.run(debug=options.debug, host=options.host, port=options.port)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

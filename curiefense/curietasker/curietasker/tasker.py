@@ -11,6 +11,7 @@ log = logging.getLogger("curietasker")
 
 ONE_MINUTE = datetime.timedelta(minutes=1)
 
+
 def get_tasks(options):
     try:
         if options.task_file is None:
@@ -26,6 +27,7 @@ def get_tasks(options):
         raise TaskListNotFound(f"{err}: {e}")
     return tasks
 
+
 def get_task(options, taskid):
     tasks = get_tasks(options)
     for t in tasks["tasklist"]:
@@ -33,6 +35,7 @@ def get_task(options, taskid):
             return t
     else:
         raise TaskNotFound(f"Task not found ({taskid})")
+
 
 def create_task(options, jtask):
     tid = jtask.get("id")
@@ -43,31 +46,38 @@ def create_task(options, jtask):
         raise TaskerInvalidTaskDescription(f"task ({tid}): missing task name")
     kind = jtask.get("kind")
     if not kind:
-        raise TaskerInvalidTaskDescription(f"task [{name}] ({tid}): missing 'kind' attribute")
+        raise TaskerInvalidTaskDescription(
+            f"task [{name}] ({tid}): missing 'kind' attribute"
+        )
     try:
         T = Task.get_task_class(kind)
     except KeyError:
-        raise TaskerInvalidTaskDescription(f"task [{name}] ({tid}): unkown task kind: {kind!r}")
+        raise TaskerInvalidTaskDescription(
+            f"task [{name}] ({tid}): unkown task kind: {kind!r}"
+        )
     datespec = jtask.get("datespec")
     if not kind:
-        raise TaskerInvalidTaskDescription(f"task [{name}] ({tid}): missing 'datespec' attribute")
+        raise TaskerInvalidTaskDescription(
+            f"task [{name}] ({tid}): missing 'datespec' attribute"
+        )
 
-    task = T(options, taskid=tid, name=name, datespec=datespec, **jtask.get("args",{}))
+    task = T(options, taskid=tid, name=name, datespec=datespec, **jtask.get("args", {}))
 
     return task
-
 
 
 def tasker(options):
     log = logging.getLogger("curietasker:tasker")
     while True:
 
-        next_timemark = datetime.datetime.now().replace(second=0, microsecond=0)+ONE_MINUTE
+        next_timemark = (
+            datetime.datetime.now().replace(second=0, microsecond=0) + ONE_MINUTE
+        )
         while True:
             now = datetime.datetime.now()
             if now > next_timemark:
                 break
-            slp = (next_timemark-now).total_seconds()
+            slp = (next_timemark - now).total_seconds()
             log.info(f"----- Sleeping {slp} seconds to {next_timemark}  -----")
             time.sleep(slp)
         log.info(f"##### Processing from {options.timemark} to {next_timemark}  #####")
@@ -87,13 +97,18 @@ def tasker(options):
 
         for task in list(options.tasklist):
             if not task.is_alive():
-                log.info(f"<== Task [{task.name}] ({task.taskid}) finished (was started at {task.start_time}).")
+                log.info(
+                    f"<== Task [{task.name}] ({task.taskid}) finished (was started at {task.start_time})."
+                )
                 task.join()
                 options.tasklist.remove(task)
             else:
-                log.info(f"STATUS: Task [{task.name}] ({task.taskid}) still running (was started at {task.start_time}.")
+                log.info(
+                    f"STATUS: Task [{task.name}] ({task.taskid}) still running (was started at {task.start_time}."
+                )
         log.info(f"STATUS: {len(options.tasklist)} tasks still running")
         options.timemark = next_timemark
+
 
 def start(options):
     options.tasklist = set()
@@ -101,7 +116,9 @@ def start(options):
         try:
             tasker(options)
         except KeyboardInterrupt:
-            log.info(f"Stopped by user. Waiting for {len(options.tasklist)} tasks to finish.")
+            log.info(
+                f"Stopped by user. Waiting for {len(options.tasklist)} tasks to finish."
+            )
             for task in options.tasklist:
                 task.join()
             log.info(f"All tasks finished.")

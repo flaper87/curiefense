@@ -13,7 +13,7 @@ from .v1 import api as api_v1
 
 app = Flask(__name__)
 
-CORS(app, resources={r'/*': { 'origins': '*'}})
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 app.register_blueprint(api_v1.api_bp, url_prefix="/api/v1")
 
@@ -22,6 +22,7 @@ def drop_into_pdb(app, exception):
     import sys
     import pdb
     import traceback
+
     traceback.print_exc()
     pdb.post_mortem(sys.exc_info()[2])
 
@@ -34,8 +35,12 @@ def main(args=None):
     parser.add_argument("--dbpath", "--db", help="API server db path", required=True)
     parser.add_argument("-d", "--debug", action="store_true", default=False)
     parser.add_argument("--pdb", action="store_true", default=False)
-    parser.add_argument("-H", "--host", default=os.environ.get("CURIECONF_HOST", "127.0.0.1"))
-    parser.add_argument("-p", "--port", type=int, default=int(os.environ.get("CURIECONF_PORT","5000")))
+    parser.add_argument(
+        "-H", "--host", default=os.environ.get("CURIECONF_HOST", "127.0.0.1")
+    )
+    parser.add_argument(
+        "-p", "--port", type=int, default=int(os.environ.get("CURIECONF_PORT", "5000"))
+    )
 
     options = parser.parse_args(args)
 
@@ -50,5 +55,6 @@ def main(args=None):
     finally:
         pass
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

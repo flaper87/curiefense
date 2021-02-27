@@ -14,11 +14,11 @@ import data
 ##  \___\___/|_|\_|_| |___\___|___/
 
 
-
 def test_configs_list(curieapi):
     r = curieapi.configs.list()
     assert r.status_code == 200
-    assert {c["id"] for c in  r.body} == {"master", "pytest"}
+    assert {c["id"] for c in r.body} == {"master", "pytest"}
+
 
 @pytest.mark.parametrize("conf", ["pytest", "master"])
 def test_configs_list_versions(curieapi, conf):
@@ -29,47 +29,61 @@ def test_configs_list_versions(curieapi, conf):
 
 def test_configs_create(curieapi_empty):
 
-    curieapi_empty.configs.create(body={"meta":{"id":"pytest", "description": "pytest"}})
-    curieapi_empty.configs.create(body={"meta":{"id":"pytest2", "description": "pytest 2"}})
-    curieapi_empty.configs.create(body={"meta":{"id":"pytest3", "description": "pytest 3"}})
+    curieapi_empty.configs.create(
+        body={"meta": {"id": "pytest", "description": "pytest"}}
+    )
+    curieapi_empty.configs.create(
+        body={"meta": {"id": "pytest2", "description": "pytest 2"}}
+    )
+    curieapi_empty.configs.create(
+        body={"meta": {"id": "pytest3", "description": "pytest 3"}}
+    )
 
     r = curieapi_empty.configs.list()
     lst = r.body
-    newconf1, = [ x for x in lst if x["id"] == "pytest" ]
-    newconf2, = [ x for x in lst if x["id"] == "pytest2" ]
-    newconf3, = [ x for x in lst if x["id"] == "pytest3" ]
+    (newconf1,) = [x for x in lst if x["id"] == "pytest"]
+    (newconf2,) = [x for x in lst if x["id"] == "pytest2"]
+    (newconf3,) = [x for x in lst if x["id"] == "pytest3"]
 
     assert len(newconf1["logs"]) == 3
     assert len(newconf2["logs"]) == 3
     assert len(newconf3["logs"]) == 3
 
+
 def test_configs_create_dup(curieapi_empty):
 
-    curieapi_empty.configs.create(body={"meta":{"id":"pytest", "description": "pytest"}})
+    curieapi_empty.configs.create(
+        body={"meta": {"id": "pytest", "description": "pytest"}}
+    )
     with pytest.raises(ClientError) as e:
-        curieapi_empty.configs.create(body={"meta":{"id":"pytest", "description": "pytest"}})
+        curieapi_empty.configs.create(
+            body={"meta": {"id": "pytest", "description": "pytest"}}
+        )
     assert e.value.response.status_code == 409
 
 
 def test_config_create_fail_clean(curieapi_empty):
     conf = {
-        "meta":{"id":"pytest", "description": "pytest"},
+        "meta": {"id": "pytest", "description": "pytest"},
         "documents": {
-            "aclpolicies": [{"id":"qsmkldjqsdk","name": "aqzdzd"}, {"id":"sqd","name":"qds"}],
-        }
-
+            "aclpolicies": [
+                {"id": "qsmkldjqsdk", "name": "aqzdzd"},
+                {"id": "sqd", "name": "qds"},
+            ],
+        },
     }
     curieapi_empty.configs.create_name("pytest1", body=conf)
 
-    conf["blobs"] = {"geolite2asn": {}} # geolite2asn should have field "format"
+    conf["blobs"] = {"geolite2asn": {}}  # geolite2asn should have field "format"
     with pytest.raises(ClientError) as e:
         curieapi_empty.configs.create_name("pytest2", body=conf)
     assert e.value.response.status_code == 400
 
-    curieapi_empty.configs.create(body={"meta":{"id":"pytest3", "description": "pytest3"}})
+    curieapi_empty.configs.create(
+        body={"meta": {"id": "pytest3", "description": "pytest3"}}
+    )
     r = curieapi_empty.documents.get("pytest3", "aclpolicies")
     assert r.body == []
-
 
 
 def test_configs_get_empty(curieapi_empty):
@@ -77,8 +91,9 @@ def test_configs_get_empty(curieapi_empty):
     assert r.status_code == 200
     res = r.body
     print(res)
-    assert res["documents"] ==  {x:[] for x in DOCUMENTS_PATH }
-    assert res["blobs"] == {k:bytes2jblob(v) for k,v in BLOBS_BOOTSTRAP.items()}
+    assert res["documents"] == {x: [] for x in DOCUMENTS_PATH}
+    assert res["blobs"] == {k: bytes2jblob(v) for k, v in BLOBS_BOOTSTRAP.items()}
+
 
 def test_configs_get(curieapi):
     r = curieapi.configs.get("pytest")
@@ -91,37 +106,56 @@ def test_configs_get(curieapi):
 
     assert bootstrap_config_json["documents"].keys() == res["documents"].keys()
     for k in bootstrap_config_json["documents"]:
-        assert bootstrap_config_json["documents"][k] == res["documents"][k] ,k
+        assert bootstrap_config_json["documents"][k] == res["documents"][k], k
 
     assert bootstrap_config_json["blobs"].keys() == res["blobs"].keys()
-    for k,retrieved in res["blobs"].items():
+    for k, retrieved in res["blobs"].items():
         sent = bootstrap_config_json["blobs"][k]
-        assert compare_jblob(sent,retrieved)
+        assert compare_jblob(sent, retrieved)
+
 
 def test_configs_update(curieapi_small):
     curieapi = curieapi_small
     r = curieapi.configs.get("pytest")
     assert r.status_code == 200
-    assert compare_jblob(r.body["blobs"]["bltor"] , vec_bltor)
-    assert r.body["documents"]["limits"] == [ vec_limit ]
-    assert r.body["documents"]["wafsigs"] == [ vec_wafsig ]
-    assert r.body["documents"]["urlmaps"] == [ vec_urlmap ]
+    assert compare_jblob(r.body["blobs"]["bltor"], vec_bltor)
+    assert r.body["documents"]["limits"] == [vec_limit]
+    assert r.body["documents"]["wafsigs"] == [vec_wafsig]
+    assert r.body["documents"]["urlmaps"] == [vec_urlmap]
 
-    jblob = { "blob":["xxx"],"format":"json" }
+    jblob = {"blob": ["xxx"], "format": "json"}
 
-    newlimits = [ { "id": vec_limit["id"], "data": { "name": "foobar", "key":"1", "limit":"2", "ttl": "3" } },
-                  { "id": "newid", "data": {"name": "barfoo", "key":"10", "limit":"20", "ttl": "30" } } ]
-    newwafsigs = [ { "id": vec_wafsig["id"], "msg": "XXXX" },
-                   {"id": "newid", "msg": "hola", "category":"1", "certainity":2, "operand":"3", "severity":4, "subcategory":"5" } ]
+    newlimits = [
+        {
+            "id": vec_limit["id"],
+            "data": {"name": "foobar", "key": "1", "limit": "2", "ttl": "3"},
+        },
+        {
+            "id": "newid",
+            "data": {"name": "barfoo", "key": "10", "limit": "20", "ttl": "30"},
+        },
+    ]
+    newwafsigs = [
+        {"id": vec_wafsig["id"], "msg": "XXXX"},
+        {
+            "id": "newid",
+            "msg": "hola",
+            "category": "1",
+            "certainity": 2,
+            "operand": "3",
+            "severity": 4,
+            "subcategory": "5",
+        },
+    ]
     update = {
-        "meta": { "id": "renamed_pytest" },
-        "blobs": { "bltor": jblob },
-        "documents": { "limits": newlimits, "wafsigs": newwafsigs},
-        "delete_blobs": { "bltor": False, "blvpnip": True },
+        "meta": {"id": "renamed_pytest"},
+        "blobs": {"bltor": jblob},
+        "documents": {"limits": newlimits, "wafsigs": newwafsigs},
+        "delete_blobs": {"bltor": False, "blvpnip": True},
         "delete_documents": {
-            "urlmaps": { "sqdqsd": True, "fezfzf": True, vec_urlmap["id"]: False },
-            "wafsigs": { vec_wafsig["id"]: True }
-        }
+            "urlmaps": {"sqdqsd": True, "fezfzf": True, vec_urlmap["id"]: False},
+            "wafsigs": {vec_wafsig["id"]: True},
+        },
     }
 
     r = curieapi.configs.update("pytest", body=update)
@@ -141,11 +175,13 @@ def test_configs_update(curieapi_small):
 ## | _ \ |_| (_) | _ \__ \
 ## |___/____\___/|___/___/
 
+
 @pytest.mark.parametrize("blob", vec_blobs.keys())
 def test_blobs_get(curieapi_small, blob):
     r = curieapi_small.blobs.get("pytest", blob)
     assert r.status_code == 200
     assert compare_jblob(r.body, vec_blobs[blob])
+
 
 @pytest.mark.parametrize("blob", vec_blobs.keys())
 def test_blobs_get_2(curieapi, blob):
@@ -153,17 +189,19 @@ def test_blobs_get_2(curieapi, blob):
     assert r.status_code == 200
     assert compare_jblob(r.body, bootstrap_config_json["blobs"][blob])
 
+
 @pytest.mark.parametrize("blob", vec_blobs.keys())
 def test_blobs_put(curieapi_small, blob):
     r = curieapi_small.blobs.get("pytest", blob)
     assert r.status_code == 200
     assert compare_jblob(r.body, vec_blobs[blob])
-    jdata= {"format": "string", "blob":"LQKJDMLAKJDLQDS?NF%LQKNSKQ"}
-    r = curieapi_small.blobs.update("pytest",blob, body=jdata)
+    jdata = {"format": "string", "blob": "LQKJDMLAKJDLQDS?NF%LQKNSKQ"}
+    r = curieapi_small.blobs.update("pytest", blob, body=jdata)
     assert r.status_code == 200
     r = curieapi_small.blobs.get("pytest", blob)
     assert r.status_code == 200
     assert compare_jblob(r.body, jdata)
+
 
 @pytest.mark.parametrize("blob", vec_blobs.keys())
 def test_blobs_delete(curieapi_small, blob):
@@ -187,7 +225,7 @@ def test_blobs_revert(curieapi, blob):
     assert r.status_code == 200
     oldv = r.body[-1]["version"]
 
-    new = {"format": "string", "blob":"LQKJDMLAKJDLQDS?NF%LQKNSKQ"}
+    new = {"format": "string", "blob": "LQKJDMLAKJDLQDS?NF%LQKNSKQ"}
     r = curieapi.blobs.update("pytest", blob, body=new)
     assert r.status_code == 200
     r = curieapi.blobs.get("pytest", blob)
@@ -199,6 +237,7 @@ def test_blobs_revert(curieapi, blob):
     r = curieapi.blobs.get("pytest", blob)
     assert r.status_code == 200
     assert r.body == old
+
 
 @pytest.mark.parametrize("blobname", vec_blobs.keys())
 def test_blobs_list_versions(curieapi, blobname):
@@ -217,7 +256,7 @@ def test_blobs_list_versions(curieapi, blobname):
     r = curieapi.blobs.list_versions("pytest", blobname)
     assert r.status_code == 200
     v2 = r.body
-    assert len(v2)-len(v1) == 1
+    assert len(v2) - len(v1) == 1
     assert "Delete" in v2[0]["message"]
 
     r = curieapi.blobs.create("pytest", blobname, body=old)
@@ -225,21 +264,19 @@ def test_blobs_list_versions(curieapi, blobname):
     r = curieapi.blobs.list_versions("pytest", blobname)
     assert r.status_code == 200
     v3 = r.body
-    assert len(v3)-len(v2) == 1
+    assert len(v3) - len(v2) == 1
     assert "Create" in v3[0]["message"]
 
-
-    newblob = {"format": "string", "blob":"LQKJDMLAKJDLQDS?NF%LQKNSKQ"}
+    newblob = {"format": "string", "blob": "LQKJDMLAKJDLQDS?NF%LQKNSKQ"}
     r = curieapi.blobs.update("pytest", blobname, body=newblob)
     assert r.status_code == 200
     r = curieapi.blobs.list_versions("pytest", blobname)
     assert r.status_code == 200
     v4 = r.body
-    assert len(v4)-len(v3) == 1
+    assert len(v4) - len(v3) == 1
     assert "Update" in v4[0]["message"]
 
-
-    newblob = {"format": "string", "blob":"LQKJDMLAKJDLQDS?NF%LQKNSZAZZAKQ"}
+    newblob = {"format": "string", "blob": "LQKJDMLAKJDLQDS?NF%LQKNSZAZZAKQ"}
     r = curieapi.blobs.update("master", blobname, body=newblob)
     assert r.status_code == 200
 
@@ -257,13 +294,10 @@ def test_blobs_list_versions(curieapi, blobname):
     assert "Update" in v6[0]["message"]
 
 
-
 ##  ___   ___   ___ _   _ __  __ ___ _  _ _____ ___
 ## |   \ / _ \ / __| | | |  \/  | __| \| |_   _/ __|
 ## | |) | (_) | (__| |_| | |\/| | _|| .` | | | \__ \
 ## |___/ \___/ \___|\___/|_|  |_|___|_|\_| |_| |___/
-
-
 
 
 @pytest.mark.parametrize("doc", vec_documents.keys())
@@ -279,9 +313,11 @@ def test_documents_list(curieapi, doc):
     assert r.status_code == 200
     assert r.body == bootstrap_config_json["documents"][doc]
 
+
 def test_documents_list_404(curieapi_small):
     with pytest.raises(NotFoundError):
         r = curieapi_small.documents.get("pytest", "XXXXX")
+
 
 @pytest.mark.parametrize("doc", vec_documents.keys())
 def test_documents_create(curieapi_empty, doc):
@@ -312,21 +348,19 @@ def test_documents_update(curieapi, doc):
     r = curieapi.documents.get("pytest", doc)
     assert r.status_code == 200
     assert r.body != []
-    oldid = { e["id"] for e in r.body }
+    oldid = {e["id"] for e in r.body}
 
-    myid="XXXXXXXXXXX"
+    myid = "XXXXXXXXXXX"
 
-    update = [{ "id": myid },
-              { "id": r.body[0]["id"]  }]
+    update = [{"id": myid}, {"id": r.body[0]["id"]}]
 
     r = curieapi.documents.update("pytest", doc, body=update)
     assert r.status_code == 200
     r = curieapi.documents.get("pytest", doc)
     assert r.status_code == 200
-    newid = { e["id"] for e in r.body }
+    newid = {e["id"] for e in r.body}
 
-    assert oldid|{myid} == newid
-
+    assert oldid | {myid} == newid
 
 
 @pytest.mark.parametrize("doc", vec_documents.keys())
@@ -338,7 +372,7 @@ def test_documents_revert(curieapi, doc):
     assert r.status_code == 200
     oldv = r.body[-1]["version"]
 
-    new = [ {"id": "qsjk"}, {"id": "dksq"} ]
+    new = [{"id": "qsjk"}, {"id": "dksq"}]
     r = curieapi.documents.delete("pytest", doc)
     assert r.status_code == 200
     r = curieapi.documents.create("pytest", doc, body=new)
@@ -371,7 +405,7 @@ def test_documents_list_versions(curieapi, docname):
     r = curieapi.documents.list_versions("pytest", docname)
     assert r.status_code == 200
     v2 = r.body
-    assert len(v2)-len(v1) == 1
+    assert len(v2) - len(v1) == 1
     assert "Delete" in v2[0]["message"]
 
     r = curieapi.documents.create("pytest", docname, body=old)
@@ -379,21 +413,20 @@ def test_documents_list_versions(curieapi, docname):
     r = curieapi.documents.list_versions("pytest", docname)
     assert r.status_code == 200
     v3 = r.body
-    assert len(v3)-len(v2) == 1
+    assert len(v3) - len(v2) == 1
     assert "New version" in v3[0]["message"]
 
-    r = curieapi.entries.create("pytest", docname, body={"id":"qdsdsq"})
+    r = curieapi.entries.create("pytest", docname, body={"id": "qdsdsq"})
     assert r.status_code == 200
     r = curieapi.documents.list_versions("pytest", docname)
     assert r.status_code == 200
     v4 = r.body
-    assert len(v4)-len(v3) == 1
+    assert len(v4) - len(v3) == 1
     assert "Add entry" in v4[0]["message"]
 
-
-    r = curieapi.entries.create("master", docname, body={"id":"qdsdsq"})
+    r = curieapi.entries.create("master", docname, body={"id": "qdsdsq"})
     assert r.status_code == 200
-    old.append({"id":"vsdsd", "name":"%i"%time.time()})
+    old.append({"id": "vsdsd", "name": "%i" % time.time()})
     r = curieapi.documents.update("pytest", docname, body=old)
     assert r.status_code == 200
 
@@ -413,17 +446,19 @@ def test_documents_list_versions(curieapi, docname):
 ## | _|| .` | | | |   /| || _|\__ \
 ## |___|_|\_| |_| |_|_\___|___|___/
 
+
 @pytest.mark.parametrize("doc", vec_documents.keys())
 def test_entries_list(curieapi_small, doc):
     r = curieapi_small.entries.list("pytest", doc)
     assert r.status_code == 200
-    assert r.body == [ vec_documents[doc]["id"] ]
+    assert r.body == [vec_documents[doc]["id"]]
+
 
 @pytest.mark.parametrize("doc", vec_documents.keys())
 def test_entries_list_2(curieapi, doc):
     r = curieapi.entries.list("pytest", doc)
     assert r.status_code == 200
-    assert r.body == [ e["id"] for e in bootstrap_config_json["documents"][doc] ]
+    assert r.body == [e["id"] for e in bootstrap_config_json["documents"][doc]]
 
 
 @pytest.mark.parametrize("doc", vec_documents.keys())
@@ -432,11 +467,13 @@ def test_entries_get(curieapi_small, doc):
     assert r.status_code == 200
     assert r.body == vec_documents[doc]
 
+
 def test_entries_get_404(curieapi_small):
     with pytest.raises(NotFoundError):
         r = curieapi_small.documents.get("pytest", "XXXX", "XXXX")
     with pytest.raises(NotFoundError):
         r = curieapi_small.documents.get("pytest", "limit", "XXXX")
+
 
 @pytest.mark.parametrize("doc", vec_documents.keys())
 def test_entries_create(curieapi, doc):
@@ -450,6 +487,7 @@ def test_entries_create(curieapi, doc):
     with pytest.raises(ClientError) as e:
         r = curieapi.entries.create("pytest", doc, body=vec)
     assert e.value.response.status_code == 409
+
 
 @pytest.mark.parametrize("doc", vec_documents.keys())
 def test_entries_update(curieapi, doc):
@@ -490,6 +528,7 @@ def test_entries_delete(curieapi, doc):
         with pytest.raises(NotFoundError):
             r = curieapi.entries.delete("pytest", doc, e["id"])
 
+
 @pytest.mark.parametrize("docname", vec_documents.keys())
 def test_entries_list_versions(curieapi, docname):
     r = curieapi.documents.get("pytest", docname)
@@ -504,15 +543,17 @@ def test_entries_list_versions(curieapi, docname):
     v1 = r.body
     assert len(v1) == 1
 
-    r = curieapi.entries.update("pytest", docname, eid,
-                                body = {"id": eid, "name":"%s" % time.time()})
+    r = curieapi.entries.update(
+        "pytest", docname, eid, body={"id": eid, "name": "%s" % time.time()}
+    )
     r = curieapi.entries.list_versions("pytest", docname, eid)
     assert r.status_code == 200
     v2 = r.body
-    assert len(v2) == len(v1)+1
+    assert len(v2) == len(v1) + 1
 
-    r = curieapi.entries.create("pytest", docname,
-                                body = {"id": "qdsqd", "name":"%s" % time.time()})
+    r = curieapi.entries.create(
+        "pytest", docname, body={"id": "qdsqd", "name": "%s" % time.time()}
+    )
     r = curieapi.entries.list_versions("pytest", docname, eid)
     assert r.status_code == 200
     v3 = r.body

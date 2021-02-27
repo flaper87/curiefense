@@ -3,15 +3,13 @@
 from setuptools import setup
 
 setup(
-    name='curieconf_client',
-    version='1.0',
-    description='Curiefense configuration clients',
-    author='Reblaze',
-    author_email='phil@reblaze.com',
-    packages=['curieconf.confclient',
-              'curieconf.cli'],
-    scripts=['bin/curieconfctl'],
-
+    name="curieconf_client",
+    version="1.0",
+    description="Curiefense configuration clients",
+    author="Reblaze",
+    author_email="phil@reblaze.com",
+    packages=["curieconf.confclient", "curieconf.cli"],
+    scripts=["bin/curieconfctl"],
     install_requires=[
         "wheel",
         "cloudstorage",
@@ -24,5 +22,5 @@ setup(
         "Programming Language :: Python :: 3",
         "OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
-    ]
+    ],
 )

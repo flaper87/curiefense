@@ -1,5 +1,5 @@
 import json
-from curieconf.utils import DOCUMENTS_PATH,BLOBS_PATH,BLOBS_BOOTSTRAP
+from curieconf.utils import DOCUMENTS_PATH, BLOBS_PATH, BLOBS_BOOTSTRAP
 
 
 bootstrap_config_json = json.load(open("config.batch.json"))
@@ -9,39 +9,40 @@ vec_limit = {
     "name": "New Rate Limit Rule rrt",
     "description": "New Rate Limit Rule",
     "ttl": "180",
-    "key": [ { "attrs": "remote_addr" } ],
+    "key": [{"attrs": "remote_addr"}],
     "limit": "3",
-    "action": { "type": "default" },
+    "action": {"type": "default"},
     "include": {
         "headers": {},
         "cookies": {},
         "args": {},
-        "attrs": { "tag": "blacklist" }
+        "attrs": {"tag": "blacklist"},
     },
     "exclude": {
         "headers": {},
         "cookies": {},
         "args": {},
-        "attrs": { "tag": "whitelist" }
+        "attrs": {"tag": "whitelist"},
     },
-    "pairwith": { "self": "self" }
+    "pairwith": {"self": "self"},
 }
-
 
 
 vec_urlmap = {
     "id": "__default__",
     "name": "default entry",
     "match": "__default__",
-    "map": [ {
-        "limit_ids": [],
-        "waf_active": True,
-        "acl_active": True,
-        "waf_profile": "__default__",
-        "acl_profile": "__default__",
-        "name": "default",
-        "match": "/"
-    } ]
+    "map": [
+        {
+            "limit_ids": [],
+            "waf_active": True,
+            "acl_active": True,
+            "waf_profile": "__default__",
+            "acl_profile": "__default__",
+            "name": "default",
+            "match": "/",
+        }
+    ],
 }
 
 
@@ -53,7 +54,7 @@ vec_wafrule = {
     "severity": 5,
     "certainity": 5,
     "category": "sqli",
-    "subcategory": "statement injection"
+    "subcategory": "statement injection",
 }
 
 
@@ -73,7 +74,7 @@ vec_wafpolicy = {
                 "key": "optnamearg",
                 "reg": "^[A-F]+$",
                 "restrict": False,
-                "exclusions": {}
+                "exclusions": {},
             },
         ],
         "regex": [
@@ -81,9 +82,9 @@ vec_wafpolicy = {
                 "key": "optregexarg",
                 "reg": "^[G-J]{3}$",
                 "restrict": False,
-                "exclusions": {}
+                "exclusions": {},
             },
-        ]
+        ],
     },
     "headers": {
         "names": [
@@ -91,17 +92,17 @@ vec_wafpolicy = {
                 "key": "optnamehdr",
                 "reg": "^[A-F]+$",
                 "restrict": False,
-                "exclusions": {}
+                "exclusions": {},
             },
         ],
         "regex": [
-                {
-                    "key": "optregexhdr",
-                    "reg": "^[G-J]{3}$",
-                    "restrict": False,
-                    "exclusions": {}
-                },
-        ]
+            {
+                "key": "optregexhdr",
+                "reg": "^[G-J]{3}$",
+                "restrict": False,
+                "exclusions": {},
+            },
+        ],
     },
     "cookies": {
         "names": [
@@ -109,7 +110,7 @@ vec_wafpolicy = {
                 "key": "optnameck",
                 "reg": "^[A-F]+$",
                 "restrict": False,
-                "exclusions": {}
+                "exclusions": {},
             },
         ],
         "regex": [
@@ -117,47 +118,42 @@ vec_wafpolicy = {
                 "key": "optregexck",
                 "reg": "^[G-J]{3}$",
                 "restrict": False,
-                "exclusions": {}
+                "exclusions": {},
             },
-        ]
-    }
+        ],
+    },
 }
-
 
 
 vec_aclpolicy = {
     "id": "__default__",
     "name": "default-acl",
-    "allow": [ "allow-change" ],
-    "allow_bot": [ "office", "qa", "devops", "sadasff"  ],
-    "deny_bot": [ "datacenter", "graylist","vpn","tor" ],
-    "bypass": [ "internalip" ],
-    "deny": [ "blocked-countries" ],
-    "force_deny": [ "blacklist" ]
+    "allow": ["allow-change"],
+    "allow_bot": ["office", "qa", "devops", "sadasff"],
+    "deny_bot": ["datacenter", "graylist", "vpn", "tor"],
+    "bypass": ["internalip"],
+    "deny": ["blocked-countries"],
+    "force_deny": ["blacklist"],
 }
 
 
-vec_tagrule =   {
+vec_tagrule = {
     "id": "ed8f6efb",
     "name": "Spamhaus DROP",
     "source": "https://www.spamhaus.org/drop/drop.txt",
     "mdate": "2020-05-31T05:28:47.410Z",
     "notes": "; notes",
     "entries_relation": "OR",
-    "tags": [
-        "blacklists",
-        "spamhaus"
-    ],
+    "tags": ["blacklists", "spamhaus"],
     "entries": [
-        [ "ip","1.10.16.0/20" ],
-        [ "ip", "1.19.0.0/16" ],
-    ]
+        ["ip", "1.10.16.0/20"],
+        ["ip", "1.19.0.0/16"],
+    ],
 }
 
 
-vec_geolite2asn = { "format": "base64", "blob": "AAAABBBB" }
-vec_geolite2country = { "format": "base64", "blob": "AAAABBBB" }
-
+vec_geolite2asn = {"format": "base64", "blob": "AAAABBBB"}
+vec_geolite2country = {"format": "base64", "blob": "AAAABBBB"}
 
 
 vec_documents = {
@@ -174,10 +170,7 @@ vec_blobs = {
     "geolite2country": vec_geolite2country,
 }
 bootstrap_small_config_json = {
-    "config": {
-        "id": "small_test_config",
-        "date": "2020-04-10T09:54:15"
-    },
-    "documents": { k: [v] for k,v in vec_documents.items() },
+    "config": {"id": "small_test_config", "date": "2020-04-10T09:54:15"},
+    "documents": {k: [v] for k, v in vec_documents.items()},
     "blobs": vec_blobs,
 }

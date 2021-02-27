@@ -1,5 +1,6 @@
 from curieconf import utils
 
+
 def compare_jblob(jblob1, jblob2):
     if jblob1 == jblob2:
         return True
@@ -10,4 +11,3 @@ def compare_jblob(jblob1, jblob2):
     jjblob1 = utils.bytes2jblob(blob1)
     jjblob2 = utils.bytes2jblob(blob2)
     return jjblob1 == jjblob2
-

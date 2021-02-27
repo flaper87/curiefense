@@ -8,7 +8,9 @@ retries = 10
 while retries > 0:
     retries -= 1
     try:
-        app.config['postgreSQL_pool'] = psycopg2.pool.ThreadedConnectionPool(1, 20, get_default_dbconfig())
+        app.config["postgreSQL_pool"] = psycopg2.pool.ThreadedConnectionPool(
+            1, 20, get_default_dbconfig()
+        )
         break
     except OperationalError:
         if retries == 0:
