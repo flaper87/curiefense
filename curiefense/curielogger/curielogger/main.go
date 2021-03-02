@@ -594,7 +594,6 @@ func (s grpcServerParams) StreamAccessLogs(x als.AccessLogService_StreamAccessLo
 			var curieProxyLog CurieProxyLog
 
 			cfm := curiefense_meta.GetFields()
-			log.Printf("%v", cfm)
 			if rqinfo_s, ok := cfm["request.info"]; ok {
 				curiefense_json_string := rqinfo_s.GetStringValue()
 				err := json.Unmarshal([]byte(curiefense_json_string), &curieProxyLog)
