@@ -819,33 +819,37 @@ func main() {
 		loggers = append(loggers, &prom)
 	}
 
-	configRetry := func(logger Logger) {
-		for i := 0; i < 60; i++ {
-			err := logger.Configure(config.ChannelCapacity)
+	// configRetry := func(logger Logger) {
+	// 	for i := 0; i < 60; i++ {
+	// 		err := logger.Configure(config.ChannelCapacity)
 
-			if err == nil {
-				loggers = append(loggers, logger)
-				break
-			}
+	// 		if err == nil {
+	// 			loggers = append(loggers, logger)
+	// 			break
+	// 		}
 
-			log.Printf("[ERROR]: failed to configure logger (retrying in 5s) %v %v", logger, err)
-			time.Sleep(5 * time.Second)
-		}
-	}
+	// 		log.Printf("[ERROR]: failed to configure logger (retrying in 5s) %v %v", logger, err)
+	// 		time.Sleep(5 * time.Second)
+	// 	}
+	// }
 
 	for _, output := range config.Outputs {
 		// ElasticSearch
 		if output.Elasticsearch.Enabled {
 			log.Printf("[DEBUG] Elasticsearch enabled with URL: %s", output.Elasticsearch.Url)
 			es := ElasticsearchLogger{config: output.Elasticsearch}
-			go configRetry(&es)
+			// go configRetry(&es)
+			es.Configure(config.ChannelCapacity)
+			loggers = append(loggers, &es)
 		}
 
 		// Logstash
 		if output.Logstash.Enabled {
 			log.Printf("[DEBUG] Logstash enabled with URL: %s", output.Logstash.Url)
 			ls := logstashLogger{config: output.Logstash}
-			go configRetry(&ls)
+			// go configRetry(&ls)
+			ls.Configure(config.ChannelCapacity)
+			loggers = append(loggers, &ls)
 		}
 
 	}

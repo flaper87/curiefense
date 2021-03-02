@@ -1,6 +1,6 @@
 log_level: info
 outputs:
-    elasticsearch: &es
+  - elasticsearch: &es
       enabled: false
       initialize: true
       overwrite: true
@@ -8,7 +8,7 @@ outputs:
       url: "http://elasticsearch:9200/"
       kibana_url: "http://kibana:5601"
 
-    logstash:
+  - logstash:
       enabled: true
       url: "http://logstash:5001/"
       elasticsearch: *es
