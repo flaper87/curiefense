@@ -154,7 +154,7 @@ function map_ip(headers, metadata, map)
     map.attrs.remote_addr = client_addr
     map.attrs.ipnum = ip_to_num(client_addr)
 
-    local city, country, asn, company = unpack(ipinfo(client_addr, map.handle))
+    local city, country, iso, asn, company = unpack(ipinfo(client_addr, map.handle))
 
     map.geo.city = {}
     map.geo.country = {}
