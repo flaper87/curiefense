@@ -1,6 +1,7 @@
-package main
+package drivers
 
 import (
+	"curielog/pkg"
 	"fmt"
 	"log"
 	"strconv"
@@ -193,12 +194,12 @@ func makeLabels(status_code int, method, path, upstream, blocked string, tags []
 }
 
 type promLogger struct {
-	logger
+	pkg.logger
 }
 
 func (l *promLogger) Configure(channel_capacity int) error {
 	l.name = "Prometheus"
-	ch := make(chan LogEntry, channel_capacity)
+	ch := make(chan pkg.LogEntry, channel_capacity)
 	l.channel = ch
 	l.do_insert = l.InsertEntry
 	return nil

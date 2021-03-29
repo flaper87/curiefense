@@ -1,7 +1,9 @@
-package main
+package drivers
 
 import (
 	"bytes"
+	"curielog/curielogger"
+	"curielog/pkg"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -38,7 +40,7 @@ type ElasticsearchConfig struct {
 }
 
 type ElasticsearchLogger struct {
-	logger
+	pkg.logger
 	client *elasticsearch.Client
 	config ElasticsearchConfig
 }
@@ -65,7 +67,7 @@ func (l *ElasticsearchLogger) ConfigureKibana() {
 	var body, ktpl bytes.Buffer
 	var fw io.Writer
 	var err error
-	res, _ := getResource("files/kibana/dashboard.ndjson")
+	res, _ := main.getResource("files/kibana/dashboard.ndjson")
 	gTpl := template.Must(template.New("it").Parse(string(res)))
 	gTpl.Execute(&ktpl, l.config)
 
@@ -121,7 +123,7 @@ func (l *ElasticsearchLogger) ConfigureKibana() {
 
 func (l *ElasticsearchLogger) Configure(channel_capacity int) error {
 	l.name = "Elasticsearch"
-	ch := make(chan LogEntry, channel_capacity)
+	ch := make(chan pkg.LogEntry, channel_capacity)
 	l.channel = ch
 	l.do_insert = l.InsertEntry
 
@@ -156,7 +158,7 @@ func (l *ElasticsearchLogger) Configure(channel_capacity int) error {
 		policy := l.config.ILMPolicy
 		if policy == "" {
 			var iTpl bytes.Buffer
-			res, _ := getResource("files/elasticsearch/ilm_policy.json")
+			res, _ := main.getResource("files/elasticsearch/ilm_policy.json")
 			gTpl := template.Must(template.New("it").Parse(string(res)))
 			gTpl.Execute(&iTpl, l.config)
 			policy = string(iTpl.Bytes())
@@ -187,7 +189,7 @@ func (l *ElasticsearchLogger) Configure(channel_capacity int) error {
 	if l.config.Overwrite || tplExists.IsError() {
 		log.Printf("[DEBUG] creating / overwriting elasticsearch index template %s for %s\n", ACCESSLOG_ES_PREFIX, l.config.Url)
 		var iTpl bytes.Buffer
-		res, _ := getResource("files/elasticsearch/es_index_template.json")
+		res, _ := main.getResource("files/elasticsearch/es_index_template.json")
 		gTpl := template.Must(template.New("it").Parse(string(res)))
 		gTpl.Execute(&iTpl, l.config)
 
@@ -220,7 +222,7 @@ func (l *ElasticsearchLogger) Configure(channel_capacity int) error {
 		}
 
 		var iTpl bytes.Buffer
-		res, _ := getResource("files/elasticsearch/index_settings.json")
+		res, _ := main.getResource("files/elasticsearch/index_settings.json")
 		gTpl := template.Must(template.New("it").Parse(string(res)))
 		gTpl.Execute(&iTpl, l.config)
 
@@ -238,7 +240,7 @@ func (l *ElasticsearchLogger) Configure(channel_capacity int) error {
 	return nil
 }
 
-func (l *ElasticsearchLogger) InsertEntry(e LogEntry) bool {
+func (l *ElasticsearchLogger) InsertEntry(e pkg.LogEntry) bool {
 	log.Printf("[DEBUG] ES insertion!")
 	client := l.getESClient() // needed to ensure ES cnx is not closed and reopen it if needed
 	j, err := json.Marshal(e.cfLog)

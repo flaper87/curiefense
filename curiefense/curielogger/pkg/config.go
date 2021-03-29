@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"strings"
@@ -16,10 +16,9 @@ type Config struct {
 type OutputsConfig struct {
 	Elasticsearch ElasticsearchConfig `mapstructure:"elasticsearch,omitempty"`
 	Logstash      LogstashConfig      `mapstructure:"logstash,omitempty"`
-	Webhook       WebhookConfig       `mapstructure:"webhook,omitempty"`
 }
 
-func LoadConfig() (config Config, err error) {
+func LoadConfig() Config {
 	viper.AutomaticEnv()
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc/curielogger/")
@@ -28,16 +27,18 @@ func LoadConfig() (config Config, err error) {
 	viper.SetEnvPrefix("CURIELOGGER")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	err = viper.ReadInConfig()
+	err := viper.ReadInConfig()
 	if err != nil {
-		return
+		panic(err)
 	}
-
-	err = viper.Unmarshal(&config)
+	cfg := Config{}
+	err = viper.Unmarshal(&cfg)
 	if err != nil {
-		return
+		panic(err)
 	}
-
-	err = validate.Validate(&config)
-	return
+	err = validate.Validate(&cfg)
+	if err != nil {
+		panic(err)
+	}
+	return cfg
 }

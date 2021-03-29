@@ -1,6 +1,7 @@
-package main
+package drivers
 
 import (
+	"curielog/pkg"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -14,18 +15,18 @@ import (
 // FLUENTD
 
 type fluentdLogger struct {
-	logger
+	pkg.logger
 }
 
 func (l *fluentdLogger) Configure(channel_capacity int) error {
 	l.name = "FluentD"
-	ch := make(chan LogEntry, channel_capacity)
+	ch := make(chan pkg.LogEntry, channel_capacity)
 	l.channel = ch
 	l.do_insert = l.InsertEntry
 	return nil
 }
 
-func (l *fluentdLogger) InsertEntry(e LogEntry) bool {
+func (l *fluentdLogger) InsertEntry(e pkg.LogEntry) bool {
 	log.Printf("[DEBUG] Fluentd insertion!")
 	j, err := json.Marshal(e.cfLog)
 	if err == nil {

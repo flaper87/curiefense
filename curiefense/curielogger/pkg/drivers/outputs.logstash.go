@@ -1,7 +1,8 @@
-package main
+package drivers
 
 import (
 	"bytes"
+	"curielog/pkg"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -20,13 +21,13 @@ type LogstashConfig struct {
 }
 
 type logstashLogger struct {
-	logger
+	pkg.logger
 	config LogstashConfig
 }
 
 func (l *logstashLogger) Configure(channel_capacity int) error {
 	l.name = "Logstash"
-	ch := make(chan LogEntry, channel_capacity)
+	ch := make(chan pkg.LogEntry, channel_capacity)
 	l.channel = ch
 	l.do_insert = l.InsertEntry
 
@@ -39,7 +40,7 @@ func (l *logstashLogger) Configure(channel_capacity int) error {
 	return nil
 }
 
-func (l *logstashLogger) InsertEntry(e LogEntry) bool {
+func (l *logstashLogger) InsertEntry(e pkg.LogEntry) bool {
 	log.Printf("[DEBUG] LogStash insertion!")
 	e.cfLog.Tags = append(e.cfLog.Tags, "curieaccesslog")
 	j, err := json.Marshal(e.cfLog)

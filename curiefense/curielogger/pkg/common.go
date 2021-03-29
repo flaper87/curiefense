@@ -1,6 +1,7 @@
-package main
+package pkg
 
 import (
+	"curielog/curielogger"
 	"errors"
 	"fmt"
 	"log"
@@ -171,7 +172,7 @@ type logger struct {
 
 func (l logger) SendEntry(e LogEntry) {
 	if len(l.channel) >= cap(l.channel) {
-		metric_dropped_log_entry.With(prometheus.Labels{"logger": l.name}).Inc()
+		main.metric_dropped_log_entry.With(prometheus.Labels{"logger": l.name}).Inc()
 		log.Printf("[WARNING] [%s] buffer full (%v/%v). Log entry dropped", l.name, len(l.channel), cap(l.channel))
 	} else {
 		l.channel <- e
@@ -199,7 +200,7 @@ func (l logger) Start() {
 		entry := l.GetLogEntry()
 		now := time.Now()
 		l.do_insert(entry)
-		metric_logger_latency.With(prometheus.Labels{"logger": l.name}).Observe(time.Since(now).Seconds())
+		main.metric_logger_latency.With(prometheus.Labels{"logger": l.name}).Observe(time.Since(now).Seconds())
 	}
 }
 
@@ -210,8 +211,4 @@ func (l logger) GetLogEntry() LogEntry {
 func (l logger) InsertEntry(e LogEntry) bool {
 	log.Printf("[ERROR] entry insertion not implemented")
 	return false
-}
-
-type grpcServerParams struct {
-	loggers []Logger
 }
