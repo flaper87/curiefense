@@ -5,15 +5,27 @@ import (
 	"io"
 )
 
+const (
+	STDOUT_ENABLED  = `STDOUT_ENABLED`
+	GCS_ENABLED     = `GCS_ENABLED`
+	FLUENTD_ENABLED = `CURIELOGGER_USES_FLUENTD`
+)
+
 func InitDrivers(v *viper.Viper) io.WriteCloser {
 	output := make([]io.WriteCloser, 0)
-	if v.GetBool(`STDOUT_ENABLED`) {
+	if v.GetBool(STDOUT_ENABLED) {
 		output = append(output, NewBufferedStdout())
 	}
-	if v.GetBool(`GCS_ENABLED`) {
+	if v.GetBool(GCS_ENABLED) {
 		if g := NewGCS(v); g != nil {
-			output = append(output, NewGCS(v))
+			output = append(output, g)
 		}
 	}
+
+	// DEPRECATED
+	if v.GetBool(FLUENTD_ENABLED) {
+		output = append(output, NewFluentD(v))
+	}
+
 	return NewTee(output)
 }
