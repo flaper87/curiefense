@@ -35,13 +35,17 @@ func main() {
 }
 
 func grpcInit(srv *grpcServer, v *viper.Viper) {
-	sock, err := net.Listen("tcp", fmt.Sprintf(":%s", v.GetString(GRPC_LISTENER)))
+	port := v.GetString(GRPC_LISTENER)
+	if port == `` {
+		port = `9001`
+	}
+	sock, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
 
-	log.Printf("GRPC server listening on %v", v.GetString(GRPC_LISTENER))
+	log.Printf("GRPC server listening on %v", port)
 	als.RegisterAccessLogServiceServer(s, srv)
 	if err := s.Serve(sock); err != nil {
 		log.Fatalf("failed to serve: %v", err)

@@ -49,10 +49,14 @@ func NewMetrics(v *viper.Viper) *Metrics {
 	if !v.GetBool(PROMETHEUS_EXPORT_ENABLED) {
 		return &Metrics{on: false}
 	}
+	port := v.GetString(PROMETHEUS_EXPORT_PORT)
+	if port == `` {
+		port = `2112`
+	}
 	// set up prometheus server
 	http.Handle("/metrics", promhttp.Handler())
-	go http.ListenAndServe(v.GetString(PROMETHEUS_EXPORT_PORT), nil)
-	log.Printf("Prometheus exporter listening on %v", v.GetString(PROMETHEUS_EXPORT_PORT))
+	go http.ListenAndServe(port, nil)
+	log.Printf("Prometheus exporter listening on %v", port)
 
 	return &Metrics{
 		on: true,
