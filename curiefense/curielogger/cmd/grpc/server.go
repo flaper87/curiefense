@@ -93,9 +93,8 @@ func (s *grpcServer) parseRawEntry(entry *ald.HTTPAccessLogEntry) (*entities.Log
 
 	log.Printf("[DEBUG] cflog=%v", cflog)
 	return &entities.LogEntry{
-		FullEntry:     entry,
-		CfLog:         cflog,
-		CurieProxyLog: curieProxyLog,
+		FullEntry: entry,
+		CfLog:     cflog,
 	}, nil
 }
 
