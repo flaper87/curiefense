@@ -1,30 +1,205 @@
 package pkg
 
 import (
+	"fmt"
 	"github.com/curiefense/curiefense/curielogger/pkg/entities"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 const (
 	PROMETHEUS_EXPORT_PORT    = `CURIELOGGER_PROMETHEUS_LISTEN`
 	PROMETHEUS_EXPORT_ENABLED = `CURIELOGGER_METRICS_PROMETHEUS_ENABLED`
+	namespace                 = "curiemetric" // For Prometheus metrics.
+)
+
+var (
+	staticTags = map[string]bool{
+		"ip":           true,
+		"asn":          true,
+		"geo":          true,
+		"aclid":        true,
+		"aclname":      true,
+		"wafid":        true,
+		"wafname":      true,
+		"urlmap":       true,
+		"urlmap-entry": true,
+		"container":    true,
+	}
 )
 
 type Metrics struct {
+	requestCounter prometheus.Counter
+	sessionDetails *prometheus.CounterVec
+	requestBytes   prometheus.Counter
+	responseBytes  prometheus.Counter
+	requestTags    *prometheus.CounterVec
+	loggerLatency  *prometheus.HistogramVec
+
+	on bool
 }
 
 func NewMetrics(v *viper.Viper) *Metrics {
-
+	if !v.GetBool(PROMETHEUS_EXPORT_ENABLED) {
+		return &Metrics{on: false}
+	}
 	// set up prometheus server
 	http.Handle("/metrics", promhttp.Handler())
-	go http.ListenAndServe(v.GetString(`PROMETHEUS_EXPORT_PORT`), nil)
-	log.Printf("Prometheus exporter listening on %v", v.GetString(`PROMETHEUS_EXPORT_PORT`))
-	return &Metrics{}
+	go http.ListenAndServe(v.GetString(PROMETHEUS_EXPORT_PORT), nil)
+	log.Printf("Prometheus exporter listening on %v", v.GetString(PROMETHEUS_EXPORT_PORT))
+
+	return &Metrics{
+		on: true,
+		requestCounter: promauto.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Name:      "http_request_total",
+				Help:      "Total number of HTTP requests",
+			},
+		),
+		sessionDetails: promauto.NewCounterVec(prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "session_details_total",
+			Help:      "number of requests per label",
+		}, []string{
+			"status_code",
+			"status_class",
+			"origin",
+			"origin_status_code",
+			"origin_status_class",
+			"method",
+			"path",
+			"blocked",
+			"asn",
+			"geo",
+			"aclid",
+			"aclname",
+			"wafid",
+			"wafname",
+			"urlmap",
+			"urlmap_entry",
+			"container",
+		}),
+		requestBytes: promauto.NewCounter(prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "request_bytes",
+			Help:      "The total number of request bytes",
+		}),
+		responseBytes: promauto.NewCounter(prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "response_bytes",
+			Help:      "The total number of response bytes",
+		}),
+		requestTags: promauto.NewCounterVec(prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "session_tags_total",
+			Help:      "Number of requests per label",
+		}, []string{"tag"}),
+		loggerLatency: promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: namespace,
+			Name:      "logger_latency",
+			Help:      "latency per logger",
+		}, []string{"logger"}),
+	}
 }
 
-func (m *Metrics) add(l *entities.LogEntry) {
+func (m *Metrics) add(e *entities.LogEntry) {
+	if !m.on {
+		return
+	}
+	m.requestCounter.Inc()
 
+	m.requestBytes.Add(float64(e.CfLog.Request.HeadersBytes + e.CfLog.Request.BodyBytes))
+	m.responseBytes.Add(float64(e.CfLog.Response.HeadersBytes + e.CfLog.Response.BodyBytes))
+
+	labels := makeLabels(e.CfLog.Response.Code, e.CfLog.Method, e.CfLog.Path,
+		e.CfLog.Upstream.RemoteAddress, strconv.FormatBool(e.CfLog.Blocked), e.CfLog.Tags)
+	m.sessionDetails.With(labels).Inc()
+
+	for _, name := range e.CfLog.Tags {
+		if !isStaticTag(name) {
+			m.requestTags.WithLabelValues(name).Inc()
+		}
+	}
+}
+
+func isStaticTag(tag string) bool {
+	if tag == "all" {
+		return true
+	}
+	parts := strings.Split(tag, ":")
+	if len(parts) > 1 {
+		return staticTags[parts[0]]
+	}
+	return false
+}
+
+func makeTagMap(tags []string) map[string]string {
+	res := make(map[string]string)
+	for _, k := range tags {
+		tspl := strings.Split(k, ":")
+		if len(tspl) == 2 {
+			res[tspl[0]] = tspl[1]
+		}
+	}
+	return res
+}
+
+func makeLabels(statusCode int, method, path, upstream, blocked string, tags []string) prometheus.Labels {
+	// classes and specific response code
+	// icode := int(statusCode)
+	classLabel := "status_Nxx"
+
+	switch {
+	case statusCode < 200:
+		classLabel = "status_1xx"
+	case statusCode > 199 && statusCode < 300:
+		classLabel = "status_2xx"
+	case statusCode > 299 && statusCode < 400:
+		classLabel = "status_3xx"
+	case statusCode > 399 && statusCode < 500:
+		classLabel = "status_4xx"
+	case statusCode > 499 && statusCode < 600:
+		classLabel = "status_5xx"
+	}
+
+	statusCodeStr := strconv.Itoa(statusCode)
+
+	origin := "N/A"
+	originStatusCode := "N/A"
+	originStatusClass := "N/A"
+
+	if len(upstream) > 0 {
+		origin = upstream
+		originStatusCode = fmt.Sprintf("origin_%s", statusCodeStr)
+		originStatusClass = fmt.Sprintf("origin_%s", classLabel)
+	}
+
+	tm := makeTagMap(tags)
+
+	return prometheus.Labels{
+		"statusCode":        statusCodeStr,
+		"status_class":      classLabel,
+		"origin":            origin,
+		"originStatusCode":  originStatusCode,
+		"originStatusClass": originStatusClass,
+		"method":            method,
+		"path":              path,
+		"blocked":           blocked,
+		"asn":               tm["asn"],
+		"geo":               tm["geo"],
+		"aclid":             tm["aclid"],
+		"aclname":           tm["aclname"],
+		"wafid":             tm["wafid"],
+		"wafname":           tm["wafname"],
+		"urlmap":            tm["urlmap"],
+		"urlmap_entry":      tm["urlmap-entry"],
+		"container":         tm["container"],
+	}
 }
