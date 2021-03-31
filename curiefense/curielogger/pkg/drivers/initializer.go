@@ -3,6 +3,7 @@ package drivers
 import (
 	"github.com/spf13/viper"
 	"io"
+	"os"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 func InitDrivers(v *viper.Viper) io.WriteCloser {
 	output := make([]io.WriteCloser, 0)
 	if v.GetBool(STDOUT_ENABLED) {
-		output = append(output, NewBufferedStdout())
+		output = append(output, os.Stdout)
 	}
 	if v.GetBool(GCS_ENABLED) {
 		if g := NewGCS(v); g != nil {

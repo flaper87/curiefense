@@ -74,6 +74,9 @@ func (g *GCS) rotateUploader() {
 }
 
 func (g *GCS) flusher(duration time.Duration) {
+	if duration.Seconds() < 1 {
+		duration = time.Second
+	}
 	t := time.NewTicker(duration)
 	for range t.C {
 		g.rotateUploader()

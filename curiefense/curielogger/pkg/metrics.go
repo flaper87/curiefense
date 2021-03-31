@@ -55,7 +55,7 @@ func NewMetrics(v *viper.Viper) *Metrics {
 	}
 	// set up prometheus server
 	http.Handle("/metrics", promhttp.Handler())
-	go http.ListenAndServe(port, nil)
+	go http.ListenAndServe(fmt.Sprintf(`:%s`, port), nil)
 	log.Printf("Prometheus exporter listening on %v", port)
 
 	return &Metrics{
@@ -188,22 +188,22 @@ func makeLabels(statusCode int, method, path, upstream, blocked string, tags []s
 	tm := makeTagMap(tags)
 
 	return prometheus.Labels{
-		"statusCode":        statusCodeStr,
-		"status_class":      classLabel,
-		"origin":            origin,
-		"originStatusCode":  originStatusCode,
-		"originStatusClass": originStatusClass,
-		"method":            method,
-		"path":              path,
-		"blocked":           blocked,
-		"asn":               tm["asn"],
-		"geo":               tm["geo"],
-		"aclid":             tm["aclid"],
-		"aclname":           tm["aclname"],
-		"wafid":             tm["wafid"],
-		"wafname":           tm["wafname"],
-		"urlmap":            tm["urlmap"],
-		"urlmap_entry":      tm["urlmap-entry"],
-		"container":         tm["container"],
+		"status_code":         statusCodeStr,
+		"status_class":        classLabel,
+		"origin":              origin,
+		"origin_status_code":  originStatusCode,
+		"origin_status_class": originStatusClass,
+		"method":              method,
+		"path":                path,
+		"blocked":             blocked,
+		"asn":                 tm["asn"],
+		"geo":                 tm["geo"],
+		"aclid":               tm["aclid"],
+		"aclname":             tm["aclname"],
+		"wafid":               tm["wafid"],
+		"wafname":             tm["wafname"],
+		"urlmap":              tm["urlmap"],
+		"urlmap_entry":        tm["urlmap-entry"],
+		"container":           tm["container"],
 	}
 }

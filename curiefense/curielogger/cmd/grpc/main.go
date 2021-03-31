@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"log"
 	"net"
+	"os"
 )
 
 const (
@@ -18,6 +19,7 @@ const (
 )
 
 func main() {
+	log.SetOutput(os.Stderr)
 	app := fx.New(
 		fx.NopLogger,
 		fx.Provide(
