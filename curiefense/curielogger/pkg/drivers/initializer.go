@@ -7,9 +7,10 @@ import (
 )
 
 const (
-	STDOUT_ENABLED  = `STDOUT_ENABLED`
-	GCS_ENABLED     = `GCS_ENABLED`
-	FLUENTD_ENABLED = `CURIELOGGER_USES_FLUENTD`
+	STDOUT_ENABLED   = `STDOUT_ENABLED`
+	GCS_ENABLED      = `GCS_ENABLED`
+	FLUENTD_ENABLED  = `CURIELOGGER_USES_FLUENTD`
+	LOGSTASH_ENABLED = `CURIELOGGER_OUTPUTS_LOGSTASH_ENABLED`
 )
 
 func InitDrivers(v *viper.Viper) io.WriteCloser {
@@ -26,6 +27,10 @@ func InitDrivers(v *viper.Viper) io.WriteCloser {
 	// DEPRECATED
 	if v.GetBool(FLUENTD_ENABLED) {
 		output = append(output, NewFluentD(v))
+	}
+	// DEPRECATED
+	if v.GetBool(LOGSTASH_ENABLED) {
+		output = append(output, NewLogstash(v))
 	}
 
 	return NewTee(output)
