@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	cloud.google.com/go/storage v1.0.0
+	github.com/elastic/go-elasticsearch/v7 v7.12.0 // indirect
 	github.com/envoyproxy/go-control-plane v0.9.9-0.20201210154907-fd9021fe5dad
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.0.0

@@ -1,8 +1,8 @@
 package pkg
 
 import (
+	"encoding/json"
 	"github.com/curiefense/curiefense/curielogger/pkg/entities"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/spf13/viper"
 	"go.uber.org/atomic"
 	"io"
@@ -10,14 +10,14 @@ import (
 
 type LogSender struct {
 	exportDrivers io.WriteCloser
-	encoder       *jsoniter.Encoder
+	encoder       *json.Encoder
 	metrics       *Metrics
 
 	closed *atomic.Bool
 }
 
 func NewLogSender(v *viper.Viper, drivers io.WriteCloser, metrics *Metrics) *LogSender {
-	return &LogSender{exportDrivers: drivers, encoder: jsoniter.ConfigFastest.NewEncoder(drivers), metrics: metrics, closed: atomic.NewBool(false)}
+	return &LogSender{exportDrivers: drivers, encoder: json.NewEncoder(drivers), metrics: metrics, closed: atomic.NewBool(false)}
 }
 
 func (ls *LogSender) Write(l *entities.LogEntry) error {

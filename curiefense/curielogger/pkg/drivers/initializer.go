@@ -11,6 +11,7 @@ const (
 	GCS_ENABLED      = `GCS_ENABLED`
 	FLUENTD_ENABLED  = `CURIELOGGER_USES_FLUENTD`
 	LOGSTASH_ENABLED = `CURIELOGGER_OUTPUTS_LOGSTASH_ENABLED`
+	ES_ENABLED       = `CURIELOGGER_OUTPUTS_LOGSTASH_ENABLED`
 )
 
 func InitDrivers(v *viper.Viper) io.WriteCloser {
@@ -32,6 +33,11 @@ func InitDrivers(v *viper.Viper) io.WriteCloser {
 	if v.GetBool(LOGSTASH_ENABLED) {
 		output = append(output, NewLogstash(v))
 	}
-
+	// DEPRECATED
+	if v.GetBool(ES_ENABLED) {
+		if es := NewElasticSearch(v); es != nil {
+			output = append(output, es)
+		}
+	}
 	return NewTee(output)
 }

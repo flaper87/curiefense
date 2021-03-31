@@ -27,6 +27,7 @@ type GCS struct {
 }
 
 func NewGCS(v *viper.Viper) *GCS {
+	log.Print(`initialized gcs`)
 	g := &GCS{
 		bucket:         v.GetString(`GCS_EXPORT_BUCKET`),
 		prefix:         v.GetString(`GCS_EXPORT_BUCKET_PREFIX`),

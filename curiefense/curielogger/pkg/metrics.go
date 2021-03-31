@@ -159,20 +159,9 @@ func makeLabels(statusCode int, method, path, upstream, blocked string, tags []s
 	// classes and specific response code
 	// icode := int(statusCode)
 	classLabel := "status_Nxx"
-
-	switch {
-	case statusCode < 200:
-		classLabel = "status_1xx"
-	case statusCode > 199 && statusCode < 300:
-		classLabel = "status_2xx"
-	case statusCode > 299 && statusCode < 400:
-		classLabel = "status_3xx"
-	case statusCode > 399 && statusCode < 500:
-		classLabel = "status_4xx"
-	case statusCode > 499 && statusCode < 600:
-		classLabel = "status_5xx"
+	if statusCode/100 >= 2 && statusCode/100 <= 5 {
+		classLabel = fmt.Sprintf("status_%dxx", statusCode/100)
 	}
-
 	statusCodeStr := strconv.Itoa(statusCode)
 
 	origin := "N/A"
