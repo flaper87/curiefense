@@ -5,35 +5,23 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/spf13/viper"
 	"io"
-	"log"
 )
 
 type LogSender struct {
-	exportDrivers []io.WriteCloser
+	exportDrivers io.WriteCloser
+	encoder       *jsoniter.Encoder
 	metrics       *Metrics
 }
 
-var (
-	jsonEncoder = jsoniter.ConfigFastest
-)
-
-func NewLogSender(v *viper.Viper, drivers []io.WriteCloser, metrics *Metrics) *LogSender {
-	return &LogSender{exportDrivers: drivers, metrics: metrics}
+func NewLogSender(v *viper.Viper, drivers io.WriteCloser, metrics *Metrics) *LogSender {
+	return &LogSender{exportDrivers: drivers, encoder: jsoniter.ConfigFastest.NewEncoder(drivers), metrics: metrics}
 }
 
-func (ls *LogSender) Write(l entities.LogEntry) {
+func (ls *LogSender) Write(l *entities.LogEntry) error {
 	// add metrics
 	ls.metrics.add(l)
 	// send logs
-	b, err := jsonEncoder.Marshal(l)
-	if err != nil {
-		log.Print(err)
-	}
-	for _, logger := range ls.exportDrivers {
-		if _, err = logger.Write(b); err != nil {
-			log.Print(err)
-		}
-	}
+	return ls.encoder.Encode(l)
 }
 
 func (ls *LogSender) Close() error {

@@ -25,6 +25,6 @@ func NewMetrics(v *viper.Viper) *Metrics {
 	return &Metrics{}
 }
 
-func (m *Metrics) add(l entities.LogEntry) {
+func (m *Metrics) add(l *entities.LogEntry) {
 
 }
