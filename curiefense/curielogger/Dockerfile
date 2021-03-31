@@ -8,7 +8,5 @@ COPY . .
 RUN go build -o curielogger ./cmd/grpc
 
 FROM alpine
-
 COPY --from=builder /app/curielogger /bin
-
 ENTRYPOINT ["/bin/curielogger"]
