@@ -20,6 +20,8 @@ type GCS struct {
 	bucket, prefix, serviceAccount string
 	storageClient                  *storage.Client
 	w                              *io.PipeWriter
+	writeCancel                    context.CancelFunc
+	size                           *atomic.Int64
 
 	closed *atomic.Bool
 	wg     *sync.WaitGroup
@@ -35,6 +37,7 @@ func NewGCS(v *viper.Viper) *GCS {
 		closed:         atomic.NewBool(false),
 		wg:             &sync.WaitGroup{},
 		lock:           &sync.Mutex{},
+		size:           atomic.NewInt64(0),
 	}
 	var err error
 	g.storageClient, err = storage.NewClient(context.Background(), option.WithTokenSource(google.ComputeTokenSource(g.serviceAccount)))
@@ -53,11 +56,17 @@ func (g *GCS) rotateUploader() {
 	if g.closed.Load() {
 		return
 	}
-	if g.w != nil {
-		g.w.Close()
+	if g.size.Load() == 0 {
+		g.writeCancel()
+	} else {
+		if g.w != nil {
+			g.w.Close()
+		}
 	}
 	t := time.Now()
-	w := g.storageClient.Bucket(g.bucket).Object(fmt.Sprintf(`%s/created_date=%s/hour=%s/%s.json.gz`, g.prefix, t.Format(`2006-01-02`), t.Format(`15`), uuid.New().String())).NewWriter(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	g.writeCancel = cancel
+	w := g.storageClient.Bucket(g.bucket).Object(fmt.Sprintf(`%s/created_date=%s/hour=%s/%s.json.gz`, g.prefix, t.Format(`2006-01-02`), t.Format(`15`), uuid.New().String())).NewWriter(ctx)
 	pr, pw := io.Pipe()
 	g.wg.Add(1)
 	go func() {
@@ -85,6 +94,7 @@ func (g *GCS) flusher(duration time.Duration) {
 }
 
 func (g *GCS) Write(p []byte) (n int, err error) {
+	g.size.Inc()
 	return g.Write(p)
 }
 
