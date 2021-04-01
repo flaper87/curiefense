@@ -95,7 +95,7 @@ func (g *GCS) flusher(duration time.Duration) {
 
 func (g *GCS) Write(p []byte) (n int, err error) {
 	g.size.Inc()
-	return g.Write(p)
+	return g.w.Write(p)
 }
 
 func (g *GCS) Close() error {
