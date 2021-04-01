@@ -100,7 +100,11 @@ func (g *GCS) Write(p []byte) (n int, err error) {
 
 func (g *GCS) Close() error {
 	g.closed.Store(true)
+	defer g.wg.Wait()
+	if g.size.Load() == 0 {
+		g.writeCancel()
+		return nil
+	}
 	g.w.Close()
-	g.wg.Wait()
 	return nil
 }
