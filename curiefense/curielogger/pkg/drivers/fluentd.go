@@ -2,8 +2,8 @@ package drivers
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"log"
 	"net/http"
 	neturl "net/url"
 )
@@ -17,7 +17,7 @@ type FluentD struct {
 }
 
 func NewFluentD(v *viper.Viper) *FluentD {
-	log.Print(`initialized fluentd`)
+	log.Info(`initialized fluentd`)
 	return &FluentD{url: fmt.Sprintf("%scuriefense.log", v.GetString(CURIELOGGER_FLUENTD_URL))}
 }
 

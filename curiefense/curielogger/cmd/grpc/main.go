@@ -6,10 +6,10 @@ import (
 	"github.com/curiefense/curiefense/curielogger/pkg"
 	"github.com/curiefense/curiefense/curielogger/pkg/drivers"
 	als "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v2"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
-	"log"
 	"net"
 	"os"
 )
@@ -20,6 +20,12 @@ const (
 
 func main() {
 	log.SetOutput(os.Stderr)
+	lvl, err := log.ParseLevel(os.Getenv(`LOG_LEVEL`))
+	if err != nil {
+		lvl = log.ErrorLevel
+	}
+	log.SetLevel(lvl)
+
 	app := fx.New(
 		fx.NopLogger,
 		fx.Provide(
@@ -47,7 +53,7 @@ func grpcInit(srv *grpcServer, v *viper.Viper) {
 	}
 	s := grpc.NewServer()
 
-	log.Printf("GRPC server listening on %v", port)
+	log.Info("GRPC server listening on %v", port)
 	als.RegisterAccessLogServiceServer(s, srv)
 	if err := s.Serve(sock); err != nil {
 		log.Fatalf("failed to serve: %v", err)

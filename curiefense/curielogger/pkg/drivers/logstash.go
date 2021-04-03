@@ -2,8 +2,8 @@ package drivers
 
 import (
 	"bytes"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"log"
 	"net/http"
 )
 
@@ -16,7 +16,7 @@ type Logstash struct {
 }
 
 func NewLogstash(v *viper.Viper) *Logstash {
-	log.Print(`initialized logstash`)
+	log.Info(`initialized logstash`)
 	return &Logstash{url: v.GetString(CURIELOGGER_OUTPUTS_LOGSTASH_URL)}
 }
 

@@ -20,7 +20,6 @@ func NewLogSender(v *viper.Viper, drivers io.WriteCloser, metrics *Metrics) *Log
 }
 
 func (ls *LogSender) Write(l *entities.LogEntry) error {
-	l.CfLog.Tags = append(l.CfLog.Tags, "curieaccesslog")
 	ls.metrics.add(l)
 	b, _ := jsoniter.Marshal(l.CfLog)
 	_, err := ls.exportDrivers.Write(b)

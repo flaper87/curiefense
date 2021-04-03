@@ -2,8 +2,8 @@ package drivers
 
 import (
 	"github.com/elastic/go-elasticsearch/v7"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"log"
 	"strings"
 )
 
@@ -20,10 +20,10 @@ func NewElasticSearch(v *viper.Viper) *ElasticSearch {
 		Addresses: strings.Split(v.GetString(ELASTICSEARCH_URL), `,`),
 	})
 	if err != nil {
-		log.Print(err)
+		log.Error(err)
 		return nil
 	}
-	log.Print(`initialized es`)
+	log.Info(`initialized es`)
 	return &ElasticSearch{client: c}
 }
 

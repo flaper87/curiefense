@@ -6,8 +6,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -56,7 +56,7 @@ func NewMetrics(v *viper.Viper) *Metrics {
 	// set up prometheus server
 	http.Handle("/metrics", promhttp.Handler())
 	go http.ListenAndServe(fmt.Sprintf(`:%s`, port), nil)
-	log.Printf("Prometheus exporter listening on %v", port)
+	log.Infof("Prometheus exporter listening on %v", port)
 
 	return &Metrics{
 		on: true,

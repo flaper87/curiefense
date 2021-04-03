@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/atomic"
 	"gocloud.dev/blob"
@@ -13,7 +14,6 @@ import (
 	_ "gocloud.dev/blob/gcsblob"
 	_ "gocloud.dev/blob/s3blob"
 	"io"
-	"log"
 	"sync"
 	"time"
 )
@@ -31,7 +31,7 @@ type GCS struct {
 }
 
 func NewGCS(v *viper.Viper) *GCS {
-	log.Print(`initialized bucket export`)
+	log.Info(`initialized bucket export`)
 	g := &GCS{
 		bucket: v.GetString(`EXPORT_BUCKET_URL`),
 		prefix: v.GetString(`EXPORT_BUCKET_PREFIX`),
@@ -43,7 +43,7 @@ func NewGCS(v *viper.Viper) *GCS {
 	var err error
 	g.storageClient, err = blob.OpenBucket(context.Background(), g.bucket)
 	if err != nil {
-		log.Print(err)
+		log.Error(err)
 		return nil
 	}
 	g.rotateUploader()
@@ -72,7 +72,7 @@ func (g *GCS) rotateUploader() {
 		ContentType:     "application/json",
 	})
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		return
 	}
 	pr, pw := io.Pipe()
@@ -82,7 +82,7 @@ func (g *GCS) rotateUploader() {
 		defer w.Close()
 		gzw, err := gzip.NewWriterLevel(w, gzip.BestCompression)
 		if err != nil {
-			log.Print(err)
+			log.Error(err)
 			return
 		}
 		defer gzw.Close()
