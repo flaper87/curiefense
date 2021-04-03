@@ -1,15 +1,17 @@
 package drivers
 
 import (
-	"cloud.google.com/go/storage"
 	"compress/gzip"
 	"context"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"go.uber.org/atomic"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/option"
+	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/azureblob"
+	_ "gocloud.dev/blob/fileblob"
+	_ "gocloud.dev/blob/gcsblob"
+	_ "gocloud.dev/blob/s3blob"
 	"io"
 	"log"
 	"sync"
@@ -17,11 +19,11 @@ import (
 )
 
 type GCS struct {
-	bucket, prefix, serviceAccount string
-	storageClient                  *storage.Client
-	w                              *io.PipeWriter
-	writeCancel                    context.CancelFunc
-	size                           *atomic.Int64
+	bucket, prefix string
+	storageClient  *blob.Bucket
+	w              *io.PipeWriter
+	writeCancel    context.CancelFunc
+	size           *atomic.Int64
 
 	closed *atomic.Bool
 	wg     *sync.WaitGroup
@@ -29,24 +31,23 @@ type GCS struct {
 }
 
 func NewGCS(v *viper.Viper) *GCS {
-	log.Print(`initialized gcs`)
+	log.Print(`initialized bucket export`)
 	g := &GCS{
-		bucket:         v.GetString(`GCS_EXPORT_BUCKET`),
-		prefix:         v.GetString(`GCS_EXPORT_BUCKET_PREFIX`),
-		serviceAccount: v.GetString(`GCS_EXPORT_SERVICE_ACCOUNT`),
-		closed:         atomic.NewBool(false),
-		wg:             &sync.WaitGroup{},
-		lock:           &sync.Mutex{},
-		size:           atomic.NewInt64(0),
+		bucket: v.GetString(`EXPORT_BUCKET_URL`),
+		prefix: v.GetString(`EXPORT_BUCKET_PREFIX`),
+		closed: atomic.NewBool(false),
+		wg:     &sync.WaitGroup{},
+		lock:   &sync.Mutex{},
+		size:   atomic.NewInt64(0),
 	}
 	var err error
-	g.storageClient, err = storage.NewClient(context.Background(), option.WithTokenSource(google.ComputeTokenSource(g.serviceAccount)))
+	g.storageClient, err = blob.OpenBucket(context.Background(), g.bucket)
 	if err != nil {
 		log.Print(err)
 		return nil
 	}
 	g.rotateUploader()
-	go g.flusher(v.GetDuration(`GCS_FLUSH_SECONDS`) * time.Second)
+	go g.flusher(v.GetDuration(`BUCKET_FLUSH_SECONDS`) * time.Second)
 	return g
 }
 
@@ -66,7 +67,14 @@ func (g *GCS) rotateUploader() {
 	t := time.Now()
 	ctx, cancel := context.WithCancel(context.Background())
 	g.writeCancel = cancel
-	w := g.storageClient.Bucket(g.bucket).Object(fmt.Sprintf(`%s/created_date=%s/hour=%s/%s.json.gz`, g.prefix, t.Format(`2006-01-02`), t.Format(`15`), uuid.New().String())).NewWriter(ctx)
+	w, err := g.storageClient.NewWriter(ctx, fmt.Sprintf(`%s/created_date=%s/hour=%s/%s.json.gz`, g.prefix, t.Format(`2006-01-02`), t.Format(`15`), uuid.New().String()), &blob.WriterOptions{
+		ContentEncoding: "gzip",
+		ContentType:     "application/json",
+	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
 	pr, pw := io.Pipe()
 	g.wg.Add(1)
 	go func() {
