@@ -17,6 +17,7 @@ type Logstash struct {
 
 func NewLogstash(v *viper.Viper) *Logstash {
 	log.Info(`initialized logstash`)
+	log.Warn(`logstash driver will be deprecated in next release please use the stdout driver`)
 	return &Logstash{url: v.GetString(CURIELOGGER_OUTPUTS_LOGSTASH_URL)}
 }
 

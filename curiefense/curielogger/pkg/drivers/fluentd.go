@@ -18,6 +18,7 @@ type FluentD struct {
 
 func NewFluentD(v *viper.Viper) *FluentD {
 	log.Info(`initialized fluentd`)
+	log.Warn(`fluentd driver will be deprecated in next release please use the stdout driver`)
 	return &FluentD{url: fmt.Sprintf("%scuriefense.log", v.GetString(CURIELOGGER_FLUENTD_URL))}
 }
 

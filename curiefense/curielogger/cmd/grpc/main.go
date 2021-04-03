@@ -22,7 +22,7 @@ func main() {
 	log.SetOutput(os.Stderr)
 	lvl, err := log.ParseLevel(os.Getenv(`LOG_LEVEL`))
 	if err != nil {
-		lvl = log.ErrorLevel
+		lvl = log.WarnLevel
 	}
 	log.SetLevel(lvl)
 
