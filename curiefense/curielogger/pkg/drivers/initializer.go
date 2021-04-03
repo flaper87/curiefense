@@ -20,7 +20,7 @@ func InitDrivers(v *viper.Viper) io.WriteCloser {
 		output = append(output, os.Stdout)
 	}
 	if v.GetBool(GCS_ENABLED) {
-		if g := NewGCS(v); g != nil {
+		if g := NewBucket(v); g != nil {
 			output = append(output, g)
 		}
 	}

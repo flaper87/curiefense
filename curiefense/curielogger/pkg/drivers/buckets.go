@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-type GCS struct {
+type Bucket struct {
 	bucket, prefix string
 	storageClient  *blob.Bucket
 	w              *io.PipeWriter
@@ -30,9 +30,9 @@ type GCS struct {
 	lock   *sync.Mutex
 }
 
-func NewGCS(v *viper.Viper) *GCS {
+func NewBucket(v *viper.Viper) *Bucket {
 	log.Info(`initialized bucket export`)
-	g := &GCS{
+	g := &Bucket{
 		bucket: v.GetString(`EXPORT_BUCKET_URL`),
 		prefix: v.GetString(`EXPORT_BUCKET_PREFIX`),
 		closed: atomic.NewBool(false),
@@ -51,7 +51,7 @@ func NewGCS(v *viper.Viper) *GCS {
 	return g
 }
 
-func (g *GCS) rotateUploader() {
+func (g *Bucket) rotateUploader() {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	if g.closed.Load() {
@@ -91,7 +91,7 @@ func (g *GCS) rotateUploader() {
 	g.w = pw
 }
 
-func (g *GCS) flusher(duration time.Duration) {
+func (g *Bucket) flusher(duration time.Duration) {
 	if duration.Seconds() < 1 {
 		duration = time.Second
 	}
@@ -101,12 +101,12 @@ func (g *GCS) flusher(duration time.Duration) {
 	}
 }
 
-func (g *GCS) Write(p []byte) (n int, err error) {
+func (g *Bucket) Write(p []byte) (n int, err error) {
 	g.size.Inc()
 	return g.w.Write(p)
 }
 
-func (g *GCS) Close() error {
+func (g *Bucket) Close() error {
 	g.closed.Store(true)
 	defer g.wg.Wait()
 	if g.size.Load() == 0 {
