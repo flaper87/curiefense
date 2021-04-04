@@ -218,8 +218,17 @@ func (l promLogger) Start() {
 		tags := e.cfLog.Tags
 		blocked := strconv.FormatBool(e.cfLog.Blocked)
 
-		labels := makeLabels(e.cfLog.Response.Code, e.cfLog.Method, e.cfLog.Path,
-			e.cfLog.Upstream.RemoteAddress, blocked, tags)
+		var method string
+		if m, ok := e.cfLog.Request.Attributes["method"]; ok {
+			method = fmt.Sprintf("%v", m)
+		}
+
+		var uri string
+		if u, ok := e.cfLog.Request.Attributes["uri"]; ok {
+			uri = fmt.Sprintf("%v", u)
+		}
+
+		labels := makeLabels(e.cfLog.Response.Code, method, uri, e.cfLog.Upstream.RemoteAddress, blocked, tags)
 		metric_session_details.With(labels).Inc()
 
 		for _, name := range tags {

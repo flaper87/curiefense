@@ -110,13 +110,7 @@ func (s grpcServerParams) StreamAccessLogs(x als.AccessLogService_StreamAccessLo
 			// Create canonical curiefense log structure
 
 			cflog := CuriefenseLog{
-				RequestId:   req.GetRequestId(),
 				Timestamp:   TimestampToRFC3339(common.GetStartTime()),
-				Scheme:      req.GetScheme(),
-				Authority:   req.GetAuthority(),
-				Port:        req.GetPort().GetValue(),
-				Method:      req.GetRequestMethod().String(),
-				Path:        req.GetPath(),
 				Blocked:     curieProxyLog.Blocked,
 				BlockReason: curieProxyLog.BlockReason,
 				Tags:        curieProxyLog.Tags,
@@ -171,9 +165,10 @@ func (s grpcServerParams) StreamAccessLogs(x als.AccessLogService_StreamAccessLo
 					Version:     tls.GetTlsVersion().String(),
 				},
 				Request: RequestData{
+					RequestId:    req.GetRequestId(),
+					Scheme:       req.GetScheme(),
 					BodyBytes:    req.GetRequestBodyBytes(),
 					HeadersBytes: req.GetRequestHeadersBytes(),
-					OriginalPath: req.GetOriginalPath(),
 					Headers:      curieProxyLog.Headers,
 					Cookies:      curieProxyLog.Cookies,
 					Arguments:    curieProxyLog.Arguments,

@@ -87,6 +87,8 @@ type NameValue struct {
 }
 
 type RequestData struct {
+	RequestId    string                 `json:"requestid"`
+	Scheme       string                 `json:"scheme"`
 	BodyBytes    uint64                 `json:"bodybytes"`
 	HeadersBytes uint64                 `json:"headersbytes"`
 	OriginalPath string                 `json:"originalpath"`
@@ -123,13 +125,8 @@ type MetadataData struct {
 }
 
 type CuriefenseLog struct {
-	RequestId string `json:"requestid"`
 	Timestamp string `json:"timestamp"`
-	Scheme    string `json:"scheme"`
 	Authority string `json:"authority"`
-	Port      uint32 `json:"port"`
-	Method    string `json:"method"`
-	Path      string `json:"path"`
 
 	Blocked     bool                   `json:"blocked"`
 	BlockReason map[string]interface{} `json:"block_reason"`
