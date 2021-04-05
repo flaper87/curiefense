@@ -91,7 +91,6 @@ type RequestData struct {
 	Scheme       string                 `json:"scheme"`
 	BodyBytes    uint64                 `json:"bodybytes"`
 	HeadersBytes uint64                 `json:"headersbytes"`
-	OriginalPath string                 `json:"originalpath"`
 	Headers      map[string]string      `json:"headers"`
 	Cookies      map[string]string      `json:"cookies"`
 	Arguments    map[string]string      `json:"arguments"`
