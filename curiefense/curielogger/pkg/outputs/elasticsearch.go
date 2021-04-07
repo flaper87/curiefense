@@ -15,9 +15,21 @@ type ElasticSearch struct {
 	client *elasticsearch.Client
 }
 
-func NewElasticSearch(v *viper.Viper) *ElasticSearch {
+type ElasticsearchConfig struct {
+	Enabled            bool   `mapstructure:"enabled"`
+	Url                string `mapstructure:"url"`
+	KibanaUrl          string `mapstructure:"kibana_url"`
+	Initialize         bool   `mapstructure:"initialize"`
+	Overwrite          bool   `mapstructure:"overwrite"`
+	AccessLogIndexName string `mapstructure:"accesslog_index_name"`
+	UseDataStream      bool   `mapstructure:"use_data_stream"`
+	ILMPolicy          string `mapstructure:"ilm_policy"`
+}
+
+func NewElasticSearch(v *viper.Viper, cfg ElasticsearchConfig) *ElasticSearch {
+	url := v.GetString(ELASTICSEARCH_URL)
 	c, err := elasticsearch.NewClient(elasticsearch.Config{
-		Addresses: strings.Split(v.GetString(ELASTICSEARCH_URL), `,`),
+		Addresses: strings.Split(url, `,`),
 	})
 	if err != nil {
 		log.Error(err)

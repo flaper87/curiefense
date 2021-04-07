@@ -15,10 +15,20 @@ type Logstash struct {
 	url string
 }
 
-func NewLogstash(v *viper.Viper) *Logstash {
+type LogstashConfig struct {
+	Enabled       bool                `mapstructure:"enabled"`
+	Url           string              `mapstructure:"url"`
+	Elasticsearch ElasticsearchConfig `mapstructure:"elasticsearch"`
+}
+
+func NewLogstash(v *viper.Viper, cfg LogstashConfig) *Logstash {
 	log.Info(`initialized logstash`)
 	log.Warn(`logstash driver will be deprecated in next release please use the stdout driver`)
-	return &Logstash{url: v.GetString(CURIELOGGER_OUTPUTS_LOGSTASH_URL)}
+	url := v.GetString(CURIELOGGER_OUTPUTS_LOGSTASH_URL)
+	if url == `` {
+		url = cfg.Url
+	}
+	return &Logstash{url: url}
 }
 
 func (l *Logstash) Write(p []byte) (n int, err error) {
