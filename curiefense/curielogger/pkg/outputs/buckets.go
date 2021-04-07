@@ -1,10 +1,10 @@
 package outputs
 
 import (
-	"compress/gzip"
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/pierrec/lz4"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/atomic"
@@ -67,8 +67,8 @@ func (g *Bucket) rotateUploader() {
 	t := time.Now()
 	ctx, cancel := context.WithCancel(context.Background())
 	g.writeCancel = cancel
-	w, err := g.storageClient.NewWriter(ctx, fmt.Sprintf(`%s/created_date=%s/hour=%s/%s.json.gz`, g.prefix, t.Format(`2006-01-02`), t.Format(`15`), uuid.New().String()), &blob.WriterOptions{
-		ContentEncoding: "gzip",
+	w, err := g.storageClient.NewWriter(ctx, fmt.Sprintf(`%s/created_date=%s/hour=%s/%s.json.lz4`, g.prefix, t.Format(`2006-01-02`), t.Format(`15`), uuid.New().String()), &blob.WriterOptions{
+		ContentEncoding: "lz4",
 		ContentType:     "application/json",
 	})
 	if err != nil {
@@ -80,13 +80,9 @@ func (g *Bucket) rotateUploader() {
 	go func() {
 		defer g.wg.Done()
 		defer w.Close()
-		gzw, err := gzip.NewWriterLevel(w, gzip.BestCompression)
-		if err != nil {
-			log.Error(err)
-			return
-		}
+		gzw := lz4.NewWriter(w)
 		defer gzw.Close()
-		io.Copy(w, pr)
+		io.Copy(gzw, pr)
 	}()
 	g.w = pw
 }

@@ -8,6 +8,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.1.2
 	github.com/json-iterator/go v1.1.10
+	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
 	github.com/prometheus/client_golang v1.10.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5 // indirect
