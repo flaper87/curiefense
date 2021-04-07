@@ -94,8 +94,8 @@ services:
 
   curielogger:
     container_name: curielogger
-    #image: "curiefense/curielogger:${DOCKER_TAG}"
-    image: "curielogger"
+    image: "curiefense/curielogger:${DOCKER_TAG}"
+    #image: "curielogger"
     restart: always
     environment:
       - CURIELOGGER_OUTPUTS_LOGSTASH_ENABLED=true
