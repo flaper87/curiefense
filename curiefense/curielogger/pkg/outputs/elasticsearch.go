@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"html/template"
@@ -210,11 +211,16 @@ func (es *ElasticSearch) ConfigureKibana() {
 }
 
 func (es *ElasticSearch) ConfigureEs() {
-	res, err := es.client.ILM.GetLifecycle()
-
-	if err != nil {
-		log.Errorf("There was an error while querying the ILM Policies %v", err)
-		return
+	var res *esapi.Response
+	var err error
+	for i := 0; i < 60; i++ {
+		res, err = es.client.ILM.GetLifecycle()
+		if err != nil {
+			log.Errorf("There was an error while querying the ILM Policies %v", err)
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		break
 	}
 
 	var ilm map[string]json.RawMessage
