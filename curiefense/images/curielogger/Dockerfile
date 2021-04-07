@@ -7,4 +7,5 @@ RUN go build -o build/curielogger ./cmd/grpc
 FROM alpine
 RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
 COPY --from=builder /app/build/curielogger /bin
+COPY --from=builder /app/curielogger.yml /bin
 ENTRYPOINT ["/bin/curielogger"]
