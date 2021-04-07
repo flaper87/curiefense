@@ -28,6 +28,8 @@ func NewLogstash(v *viper.Viper, cfg LogstashConfig) *Logstash {
 	if url == `` {
 		url = cfg.Url
 	}
+	NewElasticSearch(v, cfg.Elasticsearch).Close() // configures ES client and closes connections
+
 	return &Logstash{url: url}
 }
 
