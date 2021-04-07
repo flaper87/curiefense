@@ -1,4 +1,4 @@
-package drivers
+package outputs
 
 import (
 	"bytes"

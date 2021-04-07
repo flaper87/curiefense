@@ -1,4 +1,4 @@
-package drivers
+package outputs
 
 import (
 	"github.com/elastic/go-elasticsearch/v7"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/curiefense/curiefense/curielogger/pkg"
-	"github.com/curiefense/curiefense/curielogger/pkg/drivers"
+	"github.com/curiefense/curiefense/curielogger/pkg/outputs"
 	als "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -30,7 +30,7 @@ func main() {
 		fx.NopLogger,
 		fx.Provide(
 			pkg.NewConfig,
-			drivers.InitDrivers,
+			outputs.InitOutputs,
 			pkg.NewMetrics,
 			pkg.NewLogSender,
 			newGrpcSrv,

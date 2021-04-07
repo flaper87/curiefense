@@ -94,16 +94,15 @@ services:
 
   curielogger:
     container_name: curielogger
-    image: "curiefense/curielogger:${DOCKER_TAG}"
+    #image: "curiefense/curielogger:${DOCKER_TAG}"
+    image: "curielogger"
     restart: always
     environment:
       - CURIELOGGER_OUTPUTS_LOGSTASH_ENABLED=true
       - CURIELOGGER_OUTPUTS_LOGSTASH_URL=http://logstash:5001/
-      - CURIELOGGER_USES_FLUENTD=0
-      - CURIELOGGER_FLUENTD_URL=http://fluentd:5001/
       - CURIELOGGER_METRICS_PROMETHEUS_ENABLED=true
       - ELASTICSEARCH_URL=http://elasticsearch:9200/
-
+      - STDOUT_ENABLED=false
     networks:
       - curiemesh
     ports:

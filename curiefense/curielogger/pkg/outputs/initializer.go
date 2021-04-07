@@ -1,4 +1,4 @@
-package drivers
+package outputs
 
 import (
 	"github.com/spf13/viper"
@@ -14,7 +14,7 @@ const (
 	ES_ENABLED       = `CURIELOGGER_OUTPUTS_LOGSTASH_ENABLED`
 )
 
-func InitDrivers(v *viper.Viper) io.WriteCloser {
+func InitOutputs(v *viper.Viper) io.WriteCloser {
 	output := make([]io.WriteCloser, 0)
 	if v.GetBool(STDOUT_ENABLED) {
 		output = append(output, os.Stdout)
