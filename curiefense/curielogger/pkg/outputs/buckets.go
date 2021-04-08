@@ -57,7 +57,7 @@ func (g *Bucket) rotateUploader() {
 	if g.closed.Load() {
 		return
 	}
-	if g.size.Load() == 0 {
+	if g.size.Swap(0) == 0 {
 		if g.writeCancel != nil {
 			g.writeCancel()
 		}
