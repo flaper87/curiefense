@@ -45,6 +45,9 @@ func (s *grpcServer) sendLogs(msg *als.StreamAccessLogsMessage) {
 			log.Error(err)
 			continue
 		}
+		if outputLog == nil {
+			continue
+		}
 		if err = s.logger.Write(outputLog); err != nil {
 			log.Error(err)
 		}
