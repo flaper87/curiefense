@@ -8,7 +8,7 @@ import (
 
 const (
 	STDOUT_ENABLED   = `STDOUT_ENABLED`
-	GCS_ENABLED      = `GCS_ENABLED`
+	BUCKET_ENABLED   = `EXPORT_BUCKET_ENABLED`
 	FLUENTD_ENABLED  = `CURIELOGGER_USES_FLUENTD`
 	LOGSTASH_ENABLED = `CURIELOGGER_OUTPUTS_LOGSTASH_ENABLED`
 	ES_ENABLED       = `CURIELOGGER_OUTPUTS_ELASTICSEARCH_ENABLED`
@@ -29,7 +29,7 @@ func InitOutputs(v *viper.Viper, cfg Config) io.WriteCloser {
 	if v.GetBool(STDOUT_ENABLED) {
 		output = append(output, os.Stdout)
 	}
-	if v.GetBool(GCS_ENABLED) {
+	if v.GetBool(BUCKET_ENABLED) {
 		if g := NewBucket(v); g != nil {
 			output = append(output, g)
 		}

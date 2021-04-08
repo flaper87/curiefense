@@ -8,7 +8,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.1.2
 	github.com/json-iterator/go v1.1.10
-	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
+	github.com/pierrec/lz4 v2.6.0+incompatible
 	github.com/prometheus/client_golang v1.10.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -17,5 +17,5 @@ require (
 	go.uber.org/fx v1.13.1
 	gocloud.dev v0.22.0
 	google.golang.org/grpc v1.34.0
-	gopkg.in/dealancer/validate.v2 v2.1.0 // indirect
+	gopkg.in/dealancer/validate.v2 v2.1.0
 )
