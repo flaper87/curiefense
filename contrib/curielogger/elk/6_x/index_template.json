@@ -2,11 +2,12 @@
     "index_patterns": ["INDEX_NAME*"],
     "version": 1,
     "settings": {
+        "number_of_shards": 1
     },
     "mappings": {
         "_doc": {
             "_source": {
-                "enabled": false
+                "enabled": true
             },
             "properties": {
                 "authority": {
