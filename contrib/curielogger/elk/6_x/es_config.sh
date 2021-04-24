@@ -15,20 +15,6 @@ wait_for_es () {
 	fi
 }
 
-define_es_lifecycle_policy () {
-	if $CURL "${ELASTICSEARCH_URL}_ilm/policy/$ES_INDEX_NAME"|grep -q 200; then
-		echo "Elasticsearch lifecycle policy already exists."
-	else
-		if $CURL -X PUT "${ELASTICSEARCH_URL}_ilm/policy/$ES_INDEX_NAME" --data-binary "@$SCRIPT_DIR/es_lifecycle_policy.json"|grep -q 200; then
-			echo "Elasticsearch lifecycle policy defined."
-		else
-			echo "Elasticsearch lifecycle policy creation failed, retrying."
-			sleep 5
-			define_es_lifecycle_policy
-		fi
-	fi
-}
-
 define_es_index_template() {
 	if $CURL "${ELASTICSEARCH_URL}_template/$ES_INDEX_NAME"|grep -q 200; then
 		echo "Elastic index template already exists."
@@ -89,7 +75,6 @@ create_kibana_index_pattern () {
 # in case logs are saved in elasticsearch and not postgres
 >&2 echo "Creating an index pattern in Kibana if needed."
 wait_for_es
-define_es_lifecycle_policy
 define_es_index_template
 define_es_initial_index
 create_kibana_index_pattern

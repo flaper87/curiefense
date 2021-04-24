@@ -2,12 +2,6 @@
     "index_patterns": ["INDEX_NAME*"],
     "version": 1,
     "settings": {
-        "index": {
-            "lifecycle": {
-                "name": "INDEX_NAME",
-                "rollover_alias": "INDEX_NAME"
-            }
-        }
     },
     "mappings": {
         "_doc": {
