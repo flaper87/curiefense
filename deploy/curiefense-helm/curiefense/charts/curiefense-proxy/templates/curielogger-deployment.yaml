@@ -42,6 +42,20 @@ spec:
           - name: filebeat-configmap
             subPath: template.json
             mountPath: /usr/share/filebeat/template.json
+      - name: logrotate
+        image: blacklabelops/logrotate:1.2
+        env:
+        - name: LOGS_DIRECTORIES
+          value: "/var/log/curielogger"
+        - name: LOGROTATE_INTERVAL
+          value: hourly
+        - name: LOGROTATE_SIZE
+          value: "10M"
+        - name: LOGROTATE_COPIES
+          value: "10"
+        volumeMounts:
+          - name: curielogger
+            mountPath: /var/log/curielogger
 {{- end }}
       - name: curielogger
         env:
